@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Modal from "./Modal";
+import MoneyInput from "./MoneyInput";
 import { CATEGORIES, type Expense, type Trip } from "./types";
 import { fmtDate, money, todayStr, uid } from "./utils";
 
@@ -119,8 +120,8 @@ function ExpenseForm({
   return (
     <Modal title={isNew ? "Khoản chi mới" : "Sửa khoản chi"} onClose={onClose}>
       <label>
-        Số tiền (₫)
-        <input inputMode="numeric" autoFocus value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g, ""))} placeholder="350000" />
+        Số tiền (VNĐ)
+        <MoneyInput autoFocus value={amount} onChange={setAmount} placeholder="350.000" />
       </label>
       <div className="chips">
         {CATEGORIES.map((c) => (

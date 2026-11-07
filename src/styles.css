@@ -122,3 +122,7 @@ label input, label select, label textarea {
 .danger { color: var(--bad); border: 1px solid var(--bad); padding: 13px; border-radius: 12px; font-weight: 600; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+.money-wrap { position: relative; display: block; margin-top: 4px; }
+.money-wrap input { margin-top: 0; padding-right: 58px; font-variant-numeric: tabular-nums; }
+.money-unit { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14px; font-weight: 600; pointer-events: none; }

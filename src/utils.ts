@@ -1,8 +1,11 @@
 export const uid = () =>
   Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
-export const money = (n: number) =>
-  Math.round(n).toLocaleString("vi-VN") + " ₫";
+// 100000 -> "100.000" (tự viết để không phụ thuộc ngôn ngữ của máy)
+export const groupDigits = (s: string | number) =>
+  String(Math.round(Number(s) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+export const money = (n: number) => groupDigits(n) + " VNĐ";
 
 export const todayStr = () => {
   const d = new Date();

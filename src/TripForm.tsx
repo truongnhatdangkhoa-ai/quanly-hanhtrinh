@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Modal from "./Modal";
+import MoneyInput from "./MoneyInput";
 import type { Trip } from "./types";
 import { addDays, todayStr, uid } from "./utils";
 
@@ -43,8 +44,8 @@ export default function TripForm({
         </label>
       </div>
       <label>
-        Ngân sách dự kiến (₫)
-        <input inputMode="numeric" value={budget} onChange={(e) => setBudget(e.target.value.replace(/\D/g, ""))} placeholder="10000000" />
+        Ngân sách dự kiến (VNĐ)
+        <MoneyInput value={budget} onChange={setBudget} placeholder="10.000.000" />
       </label>
       {!valid && <p className="hint">Nhập tên chuyến đi, ngày về không được trước ngày đi.</p>}
       <div className="actions">

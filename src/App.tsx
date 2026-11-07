@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Expenses from "./Expenses";
 import Itinerary from "./Itinerary";
+import Logo from "./Logo";
 import Summary from "./Summary";
 import TripForm from "./TripForm";
 import { useData } from "./storage";
@@ -55,6 +56,7 @@ export default function App() {
     return (
       <div className="app">
         <header className="top">
+          <Logo size={34} />
           <h1>Hành Trình</h1>
         </header>
         <main>

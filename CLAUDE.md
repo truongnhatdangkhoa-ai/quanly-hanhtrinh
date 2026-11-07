@@ -7,7 +7,8 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - React 18 + TypeScript + Vite
 - Capacitor 6 đóng gói ra Android (thư mục `android/` KHÔNG nằm trong repo, CI tự tạo bằng `npx cap add android`)
 - Lưu dữ liệu: localStorage (khóa `hanh-trinh-data-v1`), đủ cho Bản 1. Bản 3 sẽ cân nhắc chuyển SQLite/IndexedDB khi có ảnh
-- Giao diện tiếng Việt, tông xanh biển + vàng nắng, dùng font hệ thống (chạy offline)
+- Giao diện tiếng Việt, tông xanh đậm (#12303b) + vàng nắng (#f2b33d), dùng font hệ thống (chạy offline)
+- Tiền: luôn hiển thị dạng `100.000 VNĐ`, dùng `money()` và `groupDigits()` trong `src/utils.ts`; lưu dạng số nguyên
 
 ## Cấu trúc
 - `src/App.tsx` danh sách chuyến đi, điều hướng, nút Back Android (history.pushState)
@@ -17,6 +18,11 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - `src/TripForm.tsx`, `src/Modal.tsx` form dùng chung
 - `src/storage.ts` hook `useData` đọc/ghi localStorage
 - `src/types.ts` kiểu dữ liệu + danh sách danh mục chi
+- `src/MoneyInput.tsx` ô nhập tiền: gõ 100000 tự hiện 100.000, đơn vị VNĐ nằm trong ô
+- `src/Logo.tsx` logo (ghim địa điểm + đường đi chấm), dùng ở đầu trang danh sách
+- `tools/make-icons.py` tạo icon/splash (cần Pillow). Chạy lại khi đổi thiết kế logo; kết quả nằm ở `android-res/` và `assets/`
+- `android-res/` icon launcher các mật độ màn hình, CI chép đè vào `android/app/src/main/res/`
+- `assets/` icon-512.png và splash.png (màn hình chờ)
 - `keystore/debug.keystore` khóa ký cố định (để cài đè bản mới lên bản cũ). Chỉ là khóa debug, không phải khóa phát hành Google Play
 
 ## Build và phát hành APK (tự động)
@@ -63,4 +69,5 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - [ ] Nhiều loại tiền (nếu đi nước ngoài)
 
 ## Nhật ký các bản
+- 1.0.1: Tiền đơn vị VNĐ, ô nhập tự thêm dấu chấm ngăn cách hàng nghìn (gõ 100000 hiện 100.000 VNĐ). Thêm icon, logo, màn hình chờ riêng (thay logo mặc định của Capacitor).
 - 1.0.0: Bản 1. Chuyến đi, lịch trình theo ngày, chi phí theo danh mục, ngân sách, tổng kết, CI tự build APK. Chưa chạy thử trên máy thật tại thời điểm viết (môi trường soạn không có mạng để build).

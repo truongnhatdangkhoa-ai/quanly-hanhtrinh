@@ -4,6 +4,7 @@ import * as L from "leaflet";
 import Icon from "./Icon";
 import { coordsText, reversePlace, searchPlaces, type LatLng, type Place } from "./geo";
 import { createMap, pinIcon } from "./mapKit";
+import { canOpenSettings, getMyPosition, openLocationSettings } from "./location";
 
 export type Picked = { name: string; lat: number; lng: number };
 
@@ -79,6 +80,7 @@ export default function MapPicker({
   const [results, setResults] = useState<Place[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [msg, setMsg] = useState("");
+  const [fix, setFix] = useState<"app" | "gps" | null>(null); // gợi ý mở cài đặt khi thiếu quyền/GPS tắt
   const [online, setOnline] = useState(navigator.onLine);
 
   // Chỉ dùng setter và ref bên trong nên bản mới nhất luôn đúng, kể cả khi được gọi từ sự kiện của bản đồ
@@ -194,23 +196,40 @@ export default function MapPicker({
     setPointRef.current?.({ lat: p.lat, lng: p.lng }, { name: p.name, address: p.address });
   };
 
-  const locate = () => {
-    if (!("geolocation" in navigator)) {
-      setMsg("Máy này không hỗ trợ định vị.");
+  const locate = async () => {
+    setMsg("Đang lấy vị trí của bạn…");
+    setFix(null);
+    const r = await getMyPosition();
+    if (r.ok) {
+      setMsg("");
+      mapRef.current?.setView([r.lat, r.lng], 17);
+      setPointRef.current?.({ lat: r.lat, lng: r.lng });
       return;
     }
-    setMsg("Đang lấy vị trí của bạn…");
-    navigator.geolocation.getCurrentPosition(
-      (g) => {
-        setMsg("");
-        const ll = { lat: g.coords.latitude, lng: g.coords.longitude };
-        mapRef.current?.setView([ll.lat, ll.lng], 17);
-        setPointRef.current?.(ll);
-      },
-      () => setMsg("Chưa lấy được vị trí. Hãy bật GPS và cho phép ứng dụng dùng vị trí."),
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
-    );
+    if (r.reason === "denied") {
+      setMsg("Ứng dụng chưa được phép dùng vị trí. Hãy cho phép trong Cài đặt rồi quay lại bấm nút vị trí.");
+      setFix("app");
+    } else if (r.reason === "off") {
+      setMsg("GPS đang tắt. Hãy bật vị trí (GPS) trên máy rồi thử lại.");
+      setFix("gps");
+    } else if (r.reason === "unsupported") {
+      setMsg("Máy này không hỗ trợ định vị.");
+    } else {
+      setMsg("Chưa lấy được vị trí. Ra chỗ thoáng hoặc thử lại sau.");
+    }
   };
+
+  // Quay lại app từ trang Cài đặt thì tự thử lấy vị trí lại
+  const locateRef = useRef(locate);
+  locateRef.current = locate;
+  useEffect(() => {
+    if (!fix) return;
+    const onVis = () => {
+      if (document.visibilityState === "visible") void locateRef.current();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [fix]);
 
   const title = looking ? "Đang tìm tên địa điểm…" : info?.name?.trim() || "Điểm đã ghim";
   const sub = looking ? "" : info?.address || (pos ? coordsText(pos) : "");
@@ -263,6 +282,11 @@ export default function MapPicker({
 
       <div className="picker-card">
         {msg && <p className="picker-msg">{msg}</p>}
+        {fix && canOpenSettings() && (
+          <button type="button" className="picker-fix" onClick={() => openLocationSettings(fix)}>
+            <Icon name="locate" size={18} /> {fix === "app" ? "Mở cài đặt để cho phép vị trí" : "Mở cài đặt vị trí (GPS)"}
+          </button>
+        )}
         {pos ? (
           <div className="picker-place">
             <span className="ico" aria-hidden="true">

@@ -1,10 +1,9 @@
 name: Build APK
 
-# Tự chạy mỗi khi có file mới được đẩy lên nhánh main/master.
+# Tự chạy mỗi khi có file mới được đẩy lên BẤT KỲ nhánh nào (main, master, kho-anan...).
 # Không cần vào tab Actions để bấm. APK xuất hiện ở mục Releases.
 on:
   push:
-    branches: [main, master]
     paths-ignore:
       - "**.md"
   workflow_dispatch:
@@ -41,6 +40,11 @@ jobs:
         run: |
           npx cap add android
           npx cap sync android
+
+      - name: Thay icon và màn hình chờ bằng logo của app
+        run: |
+          cp -r android-res/. android/app/src/main/res/
+          find android/app/src/main/res -name "splash.png" -exec cp assets/splash.png {} \;
 
       - name: Đặt số phiên bản
         run: |

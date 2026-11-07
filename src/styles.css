@@ -508,3 +508,10 @@ main.detail.map-tab { display: flex; flex-direction: column; padding: 0; overflo
 .chip.soft { background: var(--accent-soft); color: var(--accent-ink); }
 .unpinned { flex: none; max-height: 140px; overflow-y: auto; padding: 10px 14px 12px; background: var(--surface); border-top: 1px solid var(--line); }
 .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Quãng đường và gợi ý tuyến */
+.routebar { flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; padding: 4px 14px 10px; }
+.routebar .txt { flex: 1; min-width: 200px; font-size: 13.5px; line-height: 1.4; }
+.routebar .muted { font-size: 12.5px; }
+.pill-btn.solid { background: var(--sun); color: var(--sun-ink); }
+.pill-btn { min-height: 40px; }

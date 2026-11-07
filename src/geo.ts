@@ -52,7 +52,7 @@ function toPlace(it: NomItem): Place | null {
 }
 
 // fetch có giới hạn thời gian (CapacitorHttp có thể bỏ qua AbortSignal nên dùng race)
-function getJson<T>(url: string): Promise<T> {
+export function getJson<T>(url: string): Promise<T> {
   const timeout = new Promise<never>((_, rej) => window.setTimeout(() => rej(new Error("timeout")), 12000));
   const req = fetch(url, { headers: { Accept: "application/json" } }).then((r) => {
     if (!r.ok) throw new Error("HTTP " + r.status);

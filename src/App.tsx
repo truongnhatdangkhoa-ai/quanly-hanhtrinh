@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Backup from "./Backup";
 import Expenses from "./Expenses";
 import Icon from "./Icon";
 import Itinerary from "./Itinerary";
@@ -45,6 +46,7 @@ export default function App() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("plan");
   const [form, setForm] = useState<"new" | "edit" | null>(null);
+  const [backupOpen, setBackupOpen] = useState(false);
   const upd = useUpdater();
 
   // Thông báo nổi khi bản mới đã tải xong; hiện ở cả hai màn hình
@@ -110,12 +112,17 @@ export default function App() {
         {toast}
         <main className="home">
           <header className="home-top">
-            <div className="brand">
-              <Logo size={56} />
-              <div>
-                <h1>Hành Trình</h1>
-                <p>Lịch trình · Chi phí · Đếm ngược</p>
+            <div className="home-row">
+              <div className="brand">
+                <Logo size={56} />
+                <div>
+                  <h1>Hành Trình</h1>
+                  <p>Lịch trình · Chi phí · Đếm ngược</p>
+                </div>
               </div>
+              <button className="icon-btn on-dark" onClick={() => setBackupOpen(true)} aria-label="Sao lưu và khôi phục dữ liệu">
+                <Icon name="archive" size={21} />
+              </button>
             </div>
           </header>
 
@@ -247,6 +254,7 @@ export default function App() {
           </button>
         )}
         {form === "new" && <TripForm onSave={saveTrip} onClose={() => setForm(null)} />}
+        {backupOpen && <Backup data={data} onRestore={setData} onClose={() => setBackupOpen(false)} />}
       </div>
     );
   }

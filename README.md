@@ -11,7 +11,7 @@ App Android quản lý hành trình, chi phí và thời gian đi du lịch. Xem
 ## Cập nhật
 Chỉ cần đẩy file mới lên (commit/push), GitHub tự build và đăng bản mới lên Releases. Không cần bấm gì ở tab Actions.
 
-Từ bản 1.0.5, nếu chỉ sửa giao diện/logic thì KHÔNG cần cài lại APK: mở app (cần có mạng), app tự tải giao diện mới, bấm "Cập nhật ngay" hoặc mở lại app lần nữa. Chỉ cài lại APK khi đổi icon, quyền hoặc plugin native. Repo cần để chế độ Public.
+Từ bản 1.0.5, nếu chỉ sửa giao diện/logic thì KHÔNG cần cài lại APK: mở app (cần có mạng), app tự tải giao diện mới, bấm "Cập nhật ngay" hoặc mở lại app lần nữa. Chỉ cài lại APK khi đổi icon, quyền hoặc plugin native (bản 1.0.6 thêm plugin sao lưu nên cần cài lại APK một lần). Repo cần để chế độ Public.
 
 ## Cài lên điện thoại
 Tải `HanhTrinh.apk`, mở file, cho phép cài từ nguồn không xác định nếu máy hỏi. Bản mới cài đè lên bản cũ, dữ liệu được giữ nguyên.

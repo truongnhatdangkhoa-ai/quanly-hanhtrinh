@@ -6,7 +6,7 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 ## Công nghệ
 - React 18 + TypeScript + Vite
 - Capacitor 6 đóng gói ra Android (thư mục `android/` KHÔNG nằm trong repo, CI tự tạo bằng `npx cap add android`)
-- Lưu dữ liệu: localStorage (khóa `hanh-trinh-data-v1`), đủ cho Bản 1. Bản 3 sẽ cân nhắc chuyển SQLite/IndexedDB khi có ảnh
+- Lưu dữ liệu: localStorage (khóa `hanh-trinh-data-v1`), đủ cho Bản 1. Sao lưu/khôi phục ra file JSON qua `@capacitor/filesystem` + `@capacitor/share` (xem `src/backup.ts`). Bản 3 sẽ cân nhắc chuyển SQLite/IndexedDB khi có ảnh
 - Giao diện tiếng Việt, tông xanh đậm (#12303b) + vàng nắng (#f2b33d), dùng font hệ thống (chạy offline). Có chế độ tối tự theo máy; màu/bo góc/đổ bóng nằm ở biến CSS `:root` đầu `styles.css`
 - Tiền: luôn hiển thị dạng `100.000 VNĐ`, dùng `money()` và `groupDigits()` trong `src/utils.ts`; lưu dạng số nguyên
 
@@ -17,6 +17,7 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - `src/Summary.tsx` đếm ngược, thống kê, chi theo danh mục
 - `src/TripForm.tsx`, `src/Modal.tsx` form dùng chung
 - `src/storage.ts` hook `useData` đọc/ghi localStorage
+- `src/backup.ts` tạo/đọc/kiểm tra file sao lưu JSON, gộp/thay thế dữ liệu, xuất file (ghi vào Cache rồi mở bảng chia sẻ; trên trình duyệt thì tải xuống). `src/Backup.tsx` là bottom sheet Sao lưu và khôi phục, mở bằng nút lưu trữ ở góc trên phải màn hình chính
 - `src/types.ts` kiểu dữ liệu + danh sách danh mục chi
 - `src/MoneyInput.tsx` ô nhập tiền: gõ 100000 tự hiện 100.000, đơn vị VNĐ nằm trong ô
 - `src/Icon.tsx` bộ icon SVG (thay emoji), `CatBadge` + màu từng danh mục chi (`CAT_COLOR`)
@@ -52,11 +53,12 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - `markAppReady()` ở `main.tsx` phải luôn được gọi khi app khởi động: nếu giao diện mới bị lỗi, plugin tự quay về bản trước
 - Repo phải ở chế độ Public (app đọc Releases không cần đăng nhập). `fetch` đi qua `CapacitorHttp` để khỏi bị chặn CORS
 - CHỈ cập nhật được phần giao diện/logic web. Đổi icon, màn hình chờ, quyền Android, thêm plugin native hoặc nâng Capacitor vẫn phải cài lại APK (APK mới tự reset về giao diện nhúng sẵn, nên không bị lẫn bản cũ)
-- Plugin cập nhật cần compileSdk 35: workflow tự nâng `compileSdkVersion` lên 35 và Android Gradle Plugin lên 8.7.2 / Gradle 8.9 sau khi `cap add android` (targetSdk giữ 34). Nếu build lỗi liên quan SDK/AGP thì xem bước "Nâng compileSdk" trong workflow
+- Plugin cập nhật cần compileSdk 35: workflow tự nâng `compileSdkVersion` lên 35, `minSdkVersion` lên 23 (Android 6.0 trở lên, do thư viện Google Play services đi kèm plugin) và Android Gradle Plugin lên 8.7.2 / Gradle 8.9 sau khi `cap add android` (targetSdk giữ 34). Nếu build lỗi liên quan SDK/AGP thì xem bước "Nâng compileSdk" trong workflow
 - Lần đầu dùng cơ chế này phải cài APK của bản 1.0.5 trở lên; các bản trước đó không có cơ chế này
 
 ## Quy ước làm việc
 - Mỗi khi hoàn thành một bản: tăng `version` (số này hiện trong app nên luôn phải tăng để nhìn thấy đã cập nhật) trong `package.json`, tick `[x]` trong lộ trình dưới đây, thêm dòng vào "Nhật ký các bản"
+- Khi xong các sửa đổi, gửi 2 file zip: (1) chỉ gồm các file đã sửa/thêm (giữ nguyên đường dẫn thư mục) để cập nhật GitHub; (2) bản FULL hoàn chỉnh để lưu trữ
 - Giữ CLAUDE.md này cập nhật; sửa file `.md` không kích hoạt build lại
 - Không thêm thư viện nặng nếu chưa cần (app chạy offline, APK nhỏ)
 
@@ -85,13 +87,15 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - [ ] Đánh dấu điểm dừng "có chỗ nghỉ/nhà vệ sinh", giờ ngủ trưa của bé
 
 ### Bản 4 (1.3.x) – hoàn thiện
-- [ ] Sao lưu/khôi phục ra file hoặc Google Drive
+- [x] Sao lưu/khôi phục ra file JSON (1.0.6; chia sẻ được sang Drive/Zalo qua bảng chia sẻ của Android)
+- [ ] Sao lưu tự động lên Google Drive
 - [ ] Biểu đồ tròn/cột
 - [ ] Dự báo thời tiết tại điểm đến
 - [ ] Wishlist địa điểm muốn đi
 - [ ] Nhiều loại tiền (nếu đi nước ngoài)
 
 ## Nhật ký các bản
+- 1.0.6: Sao lưu và khôi phục: nút lưu trữ ở góc trên phải màn hình chính. Xuất toàn bộ dữ liệu ra file `hanh-trinh-sao-luu-<ngày>_<giờ>.json` (mở bảng chia sẻ để lưu/gửi); nhập lại từ file với hai chế độ Gộp (theo id) hoặc Thay thế toàn bộ, có kiểm tra và làm sạch file trước khi nhập. Thêm plugin native `@capacitor/filesystem` và `@capacitor/share` nên PHẢI cài lại APK một lần; trên bản APK cũ (cập nhật giao diện qua mạng) nút xuất file báo lỗi và có nút "Sao chép nội dung" dự phòng, còn nhập file vẫn dùng được.
 - 1.0.5: Tự cập nhật giao diện qua GitHub Releases (bundle.zip + update.json), không cần cài lại APK cho các thay đổi giao diện/logic. Dòng phiên bản báo trạng thái cập nhật, có thông báo "Cập nhật ngay".
 - 1.0.4: Hiện số phiên bản mờ ở góc dưới trái màn hình chính (dạng `v1.0.4 · build 12`, build = số lần chạy workflow, khớp tên bản trên Releases) để biết đã cập nhật chưa.
 - 1.0.3: Thiết kế lại giao diện: màn hình chính có thẻ chuyến nổi bật + thẻ chuyến có trạng thái, tab dưới có icon, lịch trình dạng timeline, chi phí gom theo ngày, tổng kết có biểu đồ vành khuyên, form dạng bottom sheet, chế độ tối. Không đổi dữ liệu/chức năng.

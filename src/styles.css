@@ -136,6 +136,7 @@ main.home { display: flex; flex-direction: column; padding-bottom: calc(52px + v
   padding: calc(22px + var(--safe-top)) 20px 84px;
   border-radius: 0 0 var(--r-lg) var(--r-lg);
 }
+.home-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .brand { display: flex; align-items: center; gap: 4px; margin: -6px 0 0 -8px; }
 .brand h1 { font-size: 24px; font-weight: 750; }
 .brand p { font-size: 13px; color: rgba(255, 255, 255, .72); margin-top: 1px; }
@@ -379,3 +380,20 @@ label input::placeholder, label textarea::placeholder { color: var(--muted); opa
 }
 .toast button { flex: none; min-height: 38px; padding: 0 14px; border-radius: 12px; background: var(--sun); color: var(--sun-ink); font-weight: 700; }
 @keyframes drop { from { transform: translateY(-20px); opacity: 0; } }
+
+/* Sao lưu và khôi phục */
+.ghost {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 50px; padding: 0 18px; border-radius: 14px;
+  background: var(--surface-2); color: var(--ink); font-weight: 650;
+}
+.ghost:active { transform: scale(.98); }
+.backup-card { display: flex; flex-direction: column; gap: 3px; background: var(--surface-2); border-radius: var(--r-sm); padding: 12px 14px; margin-bottom: 10px; font-size: 15px; }
+.backup-card-title { font-size: 12.5px; font-weight: 650; color: var(--muted); }
+.backup-meta { font-size: 13px; color: var(--muted); }
+.backup-stack { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+.backup-stack .primary, .backup-stack .danger, .backup-stack .ghost { flex: none; width: 100%; }
+.backup-stack button:disabled { opacity: .5; }
+.backup-msg { margin-top: 12px; padding: 10px 14px; border-radius: var(--r-sm); font-size: 14px; line-height: 1.4; }
+.backup-msg.ok { background: var(--accent-soft); color: var(--accent-ink); }
+.backup-msg.error { background: var(--bad-soft); color: var(--bad); }

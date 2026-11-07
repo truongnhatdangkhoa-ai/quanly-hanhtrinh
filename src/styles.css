@@ -128,8 +128,11 @@ b, strong { font-weight: 650; }
 .fab.above-tabs { bottom: calc(var(--tab-h) + 16px + var(--safe-bottom)); }
 
 /* ───────────── Màn hình chính ───────────── */
-main.home { padding-bottom: calc(110px + var(--safe-bottom)); }
+main.home { display: flex; flex-direction: column; padding-bottom: calc(52px + var(--safe-bottom)); }
+.home-body { flex: 1; width: 100%; padding-bottom: 28px; }
+.version { padding: 0 20px; font-size: 11px; letter-spacing: .02em; color: var(--muted); opacity: .55; user-select: none; font-variant-numeric: tabular-nums; }
 .home-top {
+  flex: none;
   background: var(--header-grad); color: #fff;
   padding: calc(22px + var(--safe-top)) 20px 84px;
   border-radius: 0 0 var(--r-lg) var(--r-lg);

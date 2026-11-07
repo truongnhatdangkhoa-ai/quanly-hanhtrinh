@@ -42,10 +42,10 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - Kết quả: APK nằm ở mục **Releases** của repo, tên `HanhTrinh.apk`
 - Link tải bản mới nhất: `https://github.com/<tài khoản>/<repo>/releases/latest/download/HanhTrinh.apk`
 - `versionCode` = số lần chạy workflow (`github.run_number`), nên bản sau luôn lớn hơn bản trước
-- Đổi số phiên bản hiển thị: sửa `version` trong `package.json`
+- Đổi số phiên bản hiển thị: sửa `version` trong `package.json`. App tự hiện `v<version> · build <số>` ở góc dưới trái màn hình chính (`vite.config.ts` nhúng `__APP_VERSION__` và `__APP_BUILD__`; CI truyền `BUILD_NUMBER` ở bước Build web). Chạy `npm run dev` trên máy thì không có số build
 
 ## Quy ước làm việc
-- Mỗi khi hoàn thành một bản: tăng `version` trong `package.json`, tick `[x]` trong lộ trình dưới đây, thêm dòng vào "Nhật ký các bản"
+- Mỗi khi hoàn thành một bản: tăng `version` (số này hiện trong app nên luôn phải tăng để nhìn thấy đã cập nhật) trong `package.json`, tick `[x]` trong lộ trình dưới đây, thêm dòng vào "Nhật ký các bản"
 - Giữ CLAUDE.md này cập nhật; sửa file `.md` không kích hoạt build lại
 - Không thêm thư viện nặng nếu chưa cần (app chạy offline, APK nhỏ)
 
@@ -81,6 +81,7 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - [ ] Nhiều loại tiền (nếu đi nước ngoài)
 
 ## Nhật ký các bản
+- 1.0.4: Hiện số phiên bản mờ ở góc dưới trái màn hình chính (dạng `v1.0.4 · build 12`, build = số lần chạy workflow, khớp tên bản trên Releases) để biết đã cập nhật chưa.
 - 1.0.3: Thiết kế lại giao diện: màn hình chính có thẻ chuyến nổi bật + thẻ chuyến có trạng thái, tab dưới có icon, lịch trình dạng timeline, chi phí gom theo ngày, tổng kết có biểu đồ vành khuyên, form dạng bottom sheet, chế độ tối. Không đổi dữ liệu/chức năng.
 - 1.0.2: Sửa workflow để tự build ở mọi nhánh (trước đó chỉ main/master nên nhánh khác không tự chạy).
 - 1.0.1: Tiền đơn vị VNĐ, ô nhập tự thêm dấu chấm ngăn cách hàng nghìn (gõ 100000 hiện 100.000 VNĐ). Thêm icon, logo, màn hình chờ riêng (thay logo mặc định của Capacitor).

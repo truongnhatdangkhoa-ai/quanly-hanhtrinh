@@ -20,6 +20,9 @@ import {
   type TripStatus,
 } from "./utils";
 
+// Phiên bản đang dùng, ví dụ "v1.0.3 · build 12" (build khớp số cuối của tên bản trên GitHub Releases)
+const VERSION_LABEL = "v" + __APP_VERSION__ + (__APP_BUILD__ ? " · build " + __APP_BUILD__ : "");
+
 type Tab = "plan" | "cost" | "sum";
 
 const STATUS_LABEL: Record<TripStatus, string> = {
@@ -205,6 +208,9 @@ export default function App() {
               </>
             )}
           </div>
+          <footer className="version" aria-label="Phiên bản ứng dụng">
+            {VERSION_LABEL}
+          </footer>
         </main>
 
         {data.trips.length > 0 && (

@@ -411,8 +411,14 @@ label input::placeholder, label textarea::placeholder { color: var(--muted); opa
 .map-canvas { position: absolute; inset: 0; z-index: 0; background: var(--surface-2); }
 .leaflet-container { font: inherit; background: var(--surface-2); }
 @media (prefers-color-scheme: dark) {
-  .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.92) contrast(.88); }
+  /* Chỉ đảo màu bản đồ đường; ảnh vệ tinh giữ nguyên màu */
+  .leaflet-container:not(.is-sat) .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.92) contrast(.88); }
 }
+.map-layer-btn { min-height: 40px; padding: 0 14px; border-radius: 99px; background: var(--surface); color: var(--accent-ink); font-size: 13px; font-weight: 700; box-shadow: var(--shadow-2); cursor: pointer; }
+.map-layer-btn:active { transform: scale(.97); }
+.leaflet-top.leaflet-left .map-layer-btn { margin: 12px 0 0 12px; }
+.map-tilewarn { position: absolute; z-index: 900; left: 12px; right: 12px; bottom: 12px; padding: 8px 12px; border-radius: var(--r-sm); background: var(--bad-soft); color: var(--bad); font-size: 13px; font-weight: 600; box-shadow: var(--shadow-1); pointer-events: none; }
+.map-tilewarn[hidden] { display: none; }
 .leaflet-touch .leaflet-bar { border: 0; border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-2); }
 .leaflet-touch .leaflet-bar a, .leaflet-bar a:hover { width: 40px; height: 40px; line-height: 40px; background-color: var(--surface); color: var(--ink); border-bottom-color: var(--line); }
 .leaflet-control-attribution { font-size: 10px; background: color-mix(in srgb, var(--surface) 82%, transparent) !important; color: var(--muted) !important; }

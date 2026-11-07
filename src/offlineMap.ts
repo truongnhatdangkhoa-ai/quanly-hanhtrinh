@@ -5,11 +5,37 @@ import * as L from "leaflet";
 // - Đường đi thật (OSRM) của từng ngày được giữ lại để lần sau offline vẫn xem được quãng đường.
 // Ô tải qua <img crossOrigin> rồi vẽ vào canvas để lấy ảnh, không dùng fetch (fetch bị CapacitorHttp can thiệp).
 
-export const TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+// Nguồn ô bản đồ. prefix là tiền tố khóa trong IndexedDB (osm để trống để giữ các ô đã lưu từ bản cũ).
+export type TileSrc = { id: "osm" | "sat" | "lbl"; url: string; prefix: string; maxNative: number; attribution: string };
+export const SRC_OSM: TileSrc = {
+  id: "osm",
+  url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+  prefix: "",
+  maxNative: 19,
+  attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>',
+};
+// Ảnh vệ tinh Esri World Imagery (không cần khóa API) và lớp tên địa danh trong suốt phủ lên trên. Lưu ý thứ tự {z}/{y}/{x}
+export const SRC_SAT: TileSrc = {
+  id: "sat",
+  url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+  prefix: "sat:",
+  maxNative: 18,
+  attribution: "Ảnh vệ tinh © Esri, Maxar, Earthstar Geographics",
+};
+export const SRC_LABELS: TileSrc = {
+  id: "lbl",
+  url: "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+  prefix: "lbl:",
+  maxNative: 18,
+  attribution: "",
+};
+export type LayerId = "sat" | "osm";
+/** Các nguồn ô cần để vẽ một lớp (vệ tinh = ảnh + tên địa danh) */
+export const layerSources = (l: LayerId): TileSrc[] => (l === "sat" ? [SRC_SAT, SRC_LABELS] : [SRC_OSM]);
 const DB = "hanh-trinh-offline";
 const TILES = "tiles";
 const ROUTES = "routes";
-const MAX_TILES = 3000;
+const MAX_TILES = 5000;
 const MAX_ROUTES = 60;
 
 let dbp: Promise<IDBDatabase | null> | null = null;
@@ -80,7 +106,7 @@ async function evict(store: string, max: number, slack: number) {
 
 type Tile = { z: number; x: number; y: number };
 const tileKey = (t: Tile) => `${t.z}/${t.x}/${t.y}`;
-const tileUrl = (t: Tile) => TILE_URL.replace("{z}", String(t.z)).replace("{x}", String(t.x)).replace("{y}", String(t.y));
+const tileUrl = (t: Tile, src: TileSrc) => src.url.replace("{z}", String(t.z)).replace("{x}", String(t.x)).replace("{y}", String(t.y));
 
 async function getTile(key: string): Promise<Blob | null> {
   const r = (await run(TILES, "readonly", (s) => s.get(key))) as { b?: Blob } | undefined;
@@ -109,12 +135,18 @@ function saveFromImg(key: string, img: HTMLImageElement) {
 
 // Lớp ô bản đồ: có trong máy thì dùng ngay, chưa có thì tải từ mạng rồi lưu lại
 export class CachedTileLayer extends L.TileLayer {
+  private src: TileSrc;
+  constructor(src: TileSrc, options: L.TileLayerOptions = {}) {
+    super(src.url, { maxZoom: 19, maxNativeZoom: src.maxNative, attribution: src.attribution, ...options });
+    this.src = src;
+  }
+
   createTile(coords: L.Coords, done: L.DoneCallback): HTMLElement {
     const tile = document.createElement("img");
     tile.alt = "";
     tile.setAttribute("role", "presentation");
     const t: Tile = { z: coords.z, x: coords.x, y: coords.y };
-    const key = tileKey(t);
+    const key = this.src.prefix + tileKey(t);
     const url = this.getTileUrl(coords);
     let finished = false;
     const finish = (err?: Error) => {
@@ -162,7 +194,7 @@ const lat2y = (lat: number, z: number) => {
   return Math.floor(((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * 2 ** z);
 };
 
-export const MAX_PREFETCH = 400; // mỗi lần bấm "Lưu bản đồ" chỉ tải tối đa ngần này ô (OSM chỉ cho dùng ít)
+export const MAX_PREFETCH = 400; // mỗi lần bấm "Lưu bản đồ" chỉ tải tối đa ngần này ô mỗi lớp (nguồn miễn phí chỉ cho dùng ít)
 
 /** Danh sách ô phủ vùng bounds, từ mức zoom z0 đi sâu dần (tối đa z0+2, không quá 17) cho đến khi chạm giới hạn MAX_PREFETCH. */
 export function planTiles(b: L.LatLngBounds, z0: number): Tile[] {
@@ -199,26 +231,29 @@ function loadImg(url: string): Promise<HTMLImageElement> {
 /** Tải sẵn các ô (bỏ qua ô đã có), 3 luồng song song. Trả về số ô tải thêm được / lỗi. */
 export async function prefetchTiles(
   tiles: Tile[],
+  srcs: TileSrc[],
   onProgress: (done: number, total: number) => void,
   stop: { cancelled: boolean },
 ): Promise<{ saved: number; had: number; failed: number }> {
+  // Mỗi ô x mỗi nguồn là một lượt tải (vệ tinh = ảnh + tên địa danh)
+  const jobs = tiles.flatMap((t) => srcs.map((src) => ({ t, src })));
   let i = 0;
   let done = 0;
   const r = { saved: 0, had: 0, failed: 0 };
   const worker = async () => {
-    while (i < tiles.length && !stop.cancelled) {
-      const t = tiles[i++];
-      const key = tileKey(t);
+    while (i < jobs.length && !stop.cancelled) {
+      const { t, src } = jobs[i++];
+      const key = src.prefix + tileKey(t);
       try {
         if (await hasTile(key)) r.had++;
         else {
-          saveFromImg(key, await loadImg(tileUrl(t)));
+          saveFromImg(key, await loadImg(tileUrl(t, src)));
           r.saved++;
         }
       } catch {
         r.failed++;
       }
-      onProgress(++done, tiles.length);
+      onProgress(++done, jobs.length);
     }
   };
   await Promise.all([worker(), worker(), worker()]);

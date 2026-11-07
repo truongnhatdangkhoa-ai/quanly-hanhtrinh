@@ -3,8 +3,8 @@ import * as L from "leaflet";
 import Icon from "./Icon";
 import MapPicker from "./MapPicker";
 import { byDayTime, directionsUrl, hasPin } from "./geo";
-import { createMap, pinIcon } from "./mapKit";
-import { MAX_PREFETCH, planTiles, prefetchTiles } from "./offlineMap";
+import { activeLayer, createMap, pinIcon } from "./mapKit";
+import { layerSources, MAX_PREFETCH, planTiles, prefetchTiles } from "./offlineMap";
 import { applyOrder, fmtKm, fmtMin, optimizeRoute, pathLen, roadRoute, type RouteInfo, type RouteLine, type RouteResult } from "./route";
 import type { Stop, Trip } from "./types";
 import { tripDayCount } from "./utils";
@@ -265,14 +265,17 @@ function MapView({ stops, line, online }: { stops: (Stop & { lat: number; lng: n
     const z0 = Math.min(16, map.getBoundsZoom(area));
     const tiles = planTiles(area, z0);
     setDlMsg("");
-    setDl({ done: 0, total: tiles.length });
     stopRef.current.cancelled = false;
-    const r = await prefetchTiles(tiles, (done, total) => setDl({ done, total }), stopRef.current);
+    const layer = activeLayer(); // lưu đúng lớp đang xem (vệ tinh hoặc bản đồ đường)
+    const srcs = layerSources(layer);
+    const total = tiles.length * srcs.length;
+    setDl({ done: 0, total });
+    const r = await prefetchTiles(tiles, srcs, (done, tot) => setDl({ done, total: tot }), stopRef.current);
     setDl(null);
     setDlMsg(
-      r.failed > tiles.length / 2
+      r.failed > total / 2
         ? "Chưa lưu được, kiểm tra kết nối mạng rồi thử lại."
-        : `Đã lưu bản đồ khu vực này (${r.saved + r.had} ô${r.failed ? ", " + r.failed + " ô lỗi" : ""}). Mất sóng vẫn xem được.`,
+        : `Đã lưu ${layer === "sat" ? "ảnh vệ tinh" : "bản đồ đường"} khu vực này (${r.saved + r.had} ô${r.failed ? ", " + r.failed + " ô lỗi" : ""}). Mất sóng vẫn xem được. Muốn lưu cả lớp kia thì đổi lớp rồi bấm lưu lần nữa.`,
     );
   };
 

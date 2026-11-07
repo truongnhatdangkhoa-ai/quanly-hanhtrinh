@@ -37,6 +37,9 @@ export const backupJson = (data: Data) => JSON.stringify(makeBackup(data), null,
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 const num = (v: unknown) => (typeof v === "number" && isFinite(v) ? v : Number(v) || 0);
+// Tọa độ hợp lệ hoặc undefined (file cũ không có tọa độ vẫn nhập bình thường)
+const coord = (v: unknown, max: number): number | undefined =>
+  typeof v === "number" && isFinite(v) && Math.abs(v) <= max ? v : undefined;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export type ParsedBackup = { data: Data; exportedAt: string; skipped: number };
@@ -87,6 +90,8 @@ export function parseBackup(text: string): ParsedBackup {
       skipped++;
       continue;
     }
+    const lat = coord(s.lat, 90);
+    const lng = coord(s.lng, 180);
     stops.push({
       id: str(s.id),
       tripId: str(s.tripId),
@@ -95,6 +100,7 @@ export function parseBackup(text: string): ParsedBackup {
       place: str(s.place),
       note: str(s.note),
       done: s.done === true,
+      ...(lat !== undefined && lng !== undefined ? { lat, lng } : {}),
     });
   }
 

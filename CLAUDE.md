@@ -8,6 +8,7 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - Capacitor 6 đóng gói ra Android (thư mục `android/` KHÔNG nằm trong repo, CI tự tạo bằng `npx cap add android`)
 - Lưu dữ liệu: localStorage (khóa `hanh-trinh-data-v1`), đủ cho Bản 1. Sao lưu/khôi phục ra file JSON qua `@capacitor/filesystem` + `@capacitor/share` (xem `src/backup.ts`). Bản 3 sẽ cân nhắc chuyển SQLite/IndexedDB khi có ảnh
 - Giao diện tiếng Việt, tông xanh đậm (#12303b) + vàng nắng (#f2b33d), dùng font hệ thống (chạy offline). Có chế độ tối tự theo máy; màu/bo góc/đổ bóng nằm ở biến CSS `:root` đầu `styles.css`
+- Bản đồ: Leaflet 1.9 + ô bản đồ OpenStreetMap (cần mạng để tải ô bản đồ; phần còn lại của app vẫn offline). Tìm địa điểm và đổi tọa độ thành tên qua Nominatim (OSM), không cần khóa API
 - Tiền: luôn hiển thị dạng `100.000 VNĐ`, dùng `money()` và `groupDigits()` trong `src/utils.ts`; lưu dạng số nguyên
 
 ## Cấu trúc
@@ -18,6 +19,10 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - `src/TripForm.tsx`, `src/Modal.tsx` form dùng chung
 - `src/storage.ts` hook `useData` đọc/ghi localStorage
 - `src/backup.ts` tạo/đọc/kiểm tra file sao lưu JSON, gộp/thay thế dữ liệu, xuất file (ghi vào Cache rồi mở bảng chia sẻ; trên trình duyệt thì tải xuống). `src/Backup.tsx` là bottom sheet Sao lưu và khôi phục, mở bằng nút lưu trữ ở góc trên phải màn hình chính
+- `src/geo.ts` Nominatim: `searchPlaces` (chỉ tìm khi bấm tìm), `reversePlace` (tọa độ -> tên), xếp hàng cách nhau ~1,1 giây đúng quy định Nominatim; `hasPin`, `coordsText`, `directionsUrl`
+- `src/mapKit.ts` `createMap` (nền OSM, nút zoom góc dưới phải, tự `invalidateSize` khi khung đổi kích thước) và `pinIcon` (ghim giọt nước vẽ bằng CSS, không dùng ảnh nên không dính lỗi icon mặc định của Leaflet)
+- `src/MapPicker.tsx` màn hình toàn màn hình chọn địa điểm: tìm theo tên, chạm bản đồ để ghim, kéo ghim, nút "Vị trí của tôi", tự điền tên + địa chỉ. Render qua `createPortal` ra `body` (bottom sheet có transform sẽ làm lệch `position: fixed`). Hook `useBackClose` thêm 1 mục lịch sử để nút Back Android chỉ đóng bản đồ
+- `src/TripMap.tsx` tab "Bản đồ" của chuyến: ghim đánh số theo giờ trong ngày, màu theo ngày (`--day-0..5`), lọc theo ngày, đường nét đứt nối thẳng (không phải đường đi thực), danh sách điểm chưa ghim để ghim nhanh
 - `src/types.ts` kiểu dữ liệu + danh sách danh mục chi
 - `src/MoneyInput.tsx` ô nhập tiền: gõ 100000 tự hiện 100.000, đơn vị VNĐ nằm trong ô
 - `src/Icon.tsx` bộ icon SVG (thay emoji), `CatBadge` + màu từng danh mục chi (`CAT_COLOR`)
@@ -26,6 +31,14 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - `android-res/` icon launcher các mật độ màn hình, CI chép đè vào `android/app/src/main/res/`
 - `assets/` icon-512.png và splash.png (màn hình chờ)
 - `keystore/debug.keystore` khóa ký cố định (để cài đè bản mới lên bản cũ). Chỉ là khóa debug, không phải khóa phát hành Google Play
+
+## Bản đồ và vị trí
+- `Stop` có thêm `lat?`/`lng?` (cùng có hoặc cùng không có); điểm cũ chưa có tọa độ vẫn dùng bình thường (nút chỉ đường tìm theo tên như trước). Có tọa độ thì nút chỉ đường mở Google Maps tới đúng tọa độ. `backup.ts` giữ và kiểm tra tọa độ khi sao lưu/khôi phục
+- Form điểm dừng: nút "Chọn trên bản đồ" đứng trên ô tên. Chọn xong tên được điền sẵn (sửa tay được). Nếu người dùng đã tự gõ tên khác thì chọn lại vị trí không ghi đè tên
+- `App.tsx` bỏ qua `popstate` khi `history.state.trip` còn: mục lịch sử của bản đồ mang state này, nhờ vậy Back chỉ đóng bản đồ. Đừng đổi thành `setOpenId(null)` vô điều kiện
+- Nút "Vị trí của tôi" dùng `navigator.geolocation`; workflow chèn quyền `ACCESS_COARSE/FINE_LOCATION` vào AndroidManifest nên PHẢI cài lại APK một lần (không cập nhật qua mạng được). Không có quyền thì hiện thông báo, các cách chọn khác vẫn dùng được
+- Quy định dịch vụ miễn phí: ô bản đồ OSM và Nominatim chỉ hợp cho app cá nhân dùng ít. Nếu sau này nhiều người dùng, đổi nhà cung cấp ô bản đồ (MapTiler, Stadia...) ở `mapKit.ts` và dịch vụ tìm kiếm ở `geo.ts`
+- Chế độ tối: ô bản đồ đảo màu bằng CSS filter ở `.leaflet-tile-pane`; ghim, bong bóng thông tin dùng biến CSS như phần còn lại
 
 ## Quy ước giao diện (UI/UX)
 - Màu, bo góc, đổ bóng, chiều cao tab: chỉ dùng biến CSS ở `:root` đầu `src/styles.css` (có sẵn bản tối trong `@media (prefers-color-scheme: dark)`). Không viết mã màu cứng trong component, trừ màu danh mục chi ở `CAT_COLOR` (`src/Icon.tsx`)
@@ -91,10 +104,12 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - [ ] Sao lưu tự động lên Google Drive
 - [ ] Biểu đồ tròn/cột
 - [ ] Dự báo thời tiết tại điểm đến
-- [ ] Wishlist địa điểm muốn đi
+- [x] Bản đồ trong app: chọn địa điểm trên bản đồ khi thêm điểm dừng, tab Bản đồ xem toàn bộ chuyến (1.0.7)
+- [ ] Wishlist địa điểm muốn đi (dùng lại `MapPicker`)
 - [ ] Nhiều loại tiền (nếu đi nước ngoài)
 
 ## Nhật ký các bản
+- 1.0.7: Bản đồ. Thêm/sửa điểm dừng có nút "Chọn trên bản đồ": tìm theo tên hoặc chạm/kéo ghim, tự điền tên và địa chỉ, có nút "Vị trí của tôi". Thêm tab "Bản đồ" ở màn hình chuyến đi: ghim đánh số theo giờ, màu theo ngày, lọc theo ngày, chạm ghim để xem và chỉ đường, danh sách điểm chưa ghim để ghim nhanh. Điểm đã ghim có biểu tượng ghim trong lịch trình và nút chỉ đường dùng đúng tọa độ. Thêm thư viện `leaflet`. Giao diện/logic cập nhật qua mạng được; riêng nút "Vị trí của tôi" cần cài lại APK một lần (thêm quyền vị trí). Chưa chạy thử trên máy thật (môi trường soạn không có mạng để cài thư viện và build).
 - 1.0.6: Sao lưu và khôi phục: nút lưu trữ ở góc trên phải màn hình chính. Xuất toàn bộ dữ liệu ra file `hanh-trinh-sao-luu-<ngày>_<giờ>.json` (mở bảng chia sẻ để lưu/gửi); nhập lại từ file với hai chế độ Gộp (theo id) hoặc Thay thế toàn bộ, có kiểm tra và làm sạch file trước khi nhập. Thêm plugin native `@capacitor/filesystem` và `@capacitor/share` nên PHẢI cài lại APK một lần; trên bản APK cũ (cập nhật giao diện qua mạng) nút xuất file báo lỗi và có nút "Sao chép nội dung" dự phòng, còn nhập file vẫn dùng được.
 - 1.0.5: Tự cập nhật giao diện qua GitHub Releases (bundle.zip + update.json), không cần cài lại APK cho các thay đổi giao diện/logic. Dòng phiên bản báo trạng thái cập nhật, có thông báo "Cập nhật ngay".
 - 1.0.4: Hiện số phiên bản mờ ở góc dưới trái màn hình chính (dạng `v1.0.4 · build 12`, build = số lần chạy workflow, khớp tên bản trên Releases) để biết đã cập nhật chưa.

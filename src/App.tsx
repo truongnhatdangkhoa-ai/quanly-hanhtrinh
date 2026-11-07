@@ -5,6 +5,7 @@ import Icon from "./Icon";
 import Itinerary from "./Itinerary";
 import Logo from "./Logo";
 import Summary from "./Summary";
+import TripMap from "./TripMap";
 import TripForm from "./TripForm";
 import { useData } from "./storage";
 import { useUpdater, type UpdateState } from "./updater";
@@ -33,7 +34,7 @@ const UPDATE_TEXT = (s: UpdateState) =>
   : s.kind === "error" ? " · chưa kiểm tra được, chạm để thử lại"
   : "";
 
-type Tab = "plan" | "cost" | "sum";
+type Tab = "plan" | "map" | "cost" | "sum";
 
 const STATUS_LABEL: Record<TripStatus, string> = {
   upcoming: "Sắp đi",
@@ -60,7 +61,11 @@ export default function App() {
 
   // Nút Back của Android quay về danh sách chuyến đi thay vì thoát app
   useEffect(() => {
-    const onPop = () => setOpenId(null);
+    // Bản đồ chọn địa điểm cũng thêm một mục lịch sử (có state.trip); lùi về mục đó thì chỉ đóng bản đồ, không thoát chuyến đi
+    const onPop = () => {
+      if (history.state && history.state.trip) return;
+      setOpenId(null);
+    };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
@@ -294,9 +299,16 @@ export default function App() {
         </div>
       </header>
 
-      <main className="detail">
+      <main className={"detail" + (tab === "map" ? " map-tab" : "")}>
         {tab === "plan" && (
           <Itinerary
+            trip={trip}
+            stops={stops}
+            onChange={(next) => setData((d) => ({ ...d, stops: [...d.stops.filter((s) => s.tripId !== trip.id), ...next] }))}
+          />
+        )}
+        {tab === "map" && (
+          <TripMap
             trip={trip}
             stops={stops}
             onChange={(next) => setData((d) => ({ ...d, stops: [...d.stops.filter((s) => s.tripId !== trip.id), ...next] }))}
@@ -316,6 +328,7 @@ export default function App() {
         {(
           [
             ["plan", "Lịch trình", "route"],
+            ["map", "Bản đồ", "map"],
             ["cost", "Chi phí", "wallet"],
             ["sum", "Tổng kết", "chart"],
           ] as [Tab, string, string][]

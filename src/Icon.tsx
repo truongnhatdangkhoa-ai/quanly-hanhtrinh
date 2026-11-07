@@ -50,6 +50,25 @@ const PATHS: Record<string, ReactNode> = {
       <path d="M22 12A10 10 0 0012 2v10z" />
     </>
   ),
+  map: (
+    <>
+      <path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z" />
+      <path d="M9 4v14M15 6v14" />
+    </>
+  ),
+  locate: (
+    <>
+      <circle cx="12" cy="12" r="7.5" />
+      <circle cx="12" cy="12" r="2.5" />
+      <path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3" />
+    </>
+  ),
+  search: (
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M21 21l-4.3-4.3" />
+    </>
+  ),
   navigate: <path d="M3 11l18-8-8 18-2-8z" />,
   trash: (
     <>

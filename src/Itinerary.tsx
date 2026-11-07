@@ -1,6 +1,8 @@
 import { useState } from "react";
 import Icon from "./Icon";
+import MapPicker from "./MapPicker";
 import Modal from "./Modal";
+import { coordsText, directionsUrl, hasPin } from "./geo";
 import type { Stop, Trip } from "./types";
 import { addDays, fmtDate, mapsUrl, tripDayCount, uid, weekdayName } from "./utils";
 
@@ -89,12 +91,19 @@ export default function Itinerary({ trip, stops, onChange }: Props) {
                         onClick={() => setEditing(s)}
                         onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setEditing(s)}
                       >
-                        <strong>{s.place}</strong>
+                        <strong>
+                          {hasPin(s) && (
+                            <span className="pinned" title="Đã ghim trên bản đồ">
+                              <Icon name="pin" size={14} />
+                            </span>
+                          )}
+                          {s.place}
+                        </strong>
                         {s.note && <span className="muted">{s.note}</span>}
                       </div>
                       <a
                         className="icon-btn map"
-                        href={mapsUrl(s.place + " " + trip.destination)}
+                        href={hasPin(s) ? directionsUrl(s) : mapsUrl(s.place + " " + trip.destination)}
                         target="_blank"
                         rel="noreferrer"
                         aria-label={"Chỉ đường tới " + s.place}
@@ -115,6 +124,8 @@ export default function Itinerary({ trip, stops, onChange }: Props) {
           stop={editing}
           isNew={!stops.some((x) => x.id === editing.id)}
           days={days}
+          destination={trip.destination}
+          nearby={stops.filter(hasPin)}
           onSave={save}
           onDelete={() => remove(editing.id)}
           onClose={() => setEditing(null)}
@@ -128,6 +139,8 @@ function StopForm({
   stop,
   isNew,
   days,
+  destination,
+  nearby,
   onSave,
   onDelete,
   onClose,
@@ -135,6 +148,8 @@ function StopForm({
   stop: Stop;
   isNew: boolean;
   days: number;
+  destination: string;
+  nearby: { lat: number; lng: number }[];
   onSave: (s: Stop) => void;
   onDelete: () => void;
   onClose: () => void;
@@ -143,13 +158,31 @@ function StopForm({
   const [time, setTime] = useState(stop.time);
   const [note, setNote] = useState(stop.note);
   const [day, setDay] = useState(stop.day);
+  const [pin, setPin] = useState<{ lat: number; lng: number } | null>(hasPin(stop) ? { lat: stop.lat, lng: stop.lng } : null);
+  const [autoName, setAutoName] = useState(""); // tên do bản đồ điền, để biết có được thay khi chọn lại không
+  const [picking, setPicking] = useState(false);
 
   return (
     <Modal title={isNew ? "Điểm dừng mới" : "Sửa điểm dừng"} onClose={onClose}>
+      <button type="button" className="map-pick" onClick={() => setPicking(true)}>
+        <span className="map-pick-ico" aria-hidden="true">
+          <Icon name="map" size={22} />
+        </span>
+        <span className="map-pick-text">
+          <strong>{pin ? "Đổi vị trí trên bản đồ" : "Chọn trên bản đồ"}</strong>
+          <span>{pin ? "Đã ghim · " + coordsText(pin) : "Tìm tên hoặc chạm vào bản đồ để ghim"}</span>
+        </span>
+        <Icon name="chevron" size={20} />
+      </button>
       <label>
-        Địa điểm
+        Tên địa điểm
         <input value={place} onChange={(e) => setPlace(e.target.value)} placeholder="Hồ Xuân Hương" />
       </label>
+      {pin && (
+        <button type="button" className="unpin" onClick={() => setPin(null)}>
+          <Icon name="close" size={14} stroke={2.4} /> Bỏ ghim trên bản đồ
+        </button>
+      )}
       <div className="row">
         <label>
           Giờ
@@ -176,10 +209,29 @@ function StopForm({
             <Icon name="trash" size={19} /> Xóa
           </button>
         )}
-        <button className="primary" disabled={!place.trim()} onClick={() => onSave({ ...stop, place: place.trim(), time, note: note.trim(), day })}>
+        <button className="primary" disabled={!place.trim()} onClick={() => onSave({ ...stop, place: place.trim(), time, note: note.trim(), day, lat: pin?.lat, lng: pin?.lng })}>
           Lưu điểm dừng
         </button>
       </div>
+      {picking && (
+        <MapPicker
+          initial={pin ?? undefined}
+          initialName={place.trim()}
+          destination={destination}
+          nearby={nearby}
+          onClose={() => setPicking(false)}
+          onPick={(p) => {
+            setPin({ lat: p.lat, lng: p.lng });
+            const name = p.name || "Điểm đã ghim";
+            // Điền tên từ bản đồ nếu ô tên đang trống hoặc vẫn là tên tự điền lần trước; tên người dùng tự gõ thì giữ nguyên
+            if (!place.trim() || place === autoName) {
+              setPlace(name);
+              setAutoName(name);
+            }
+            setPicking(false);
+          }}
+        />
+      )}
     </Modal>
   );
 }

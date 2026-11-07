@@ -15,6 +15,8 @@ export type Stop = {
   place: string;
   note: string;
   done: boolean;
+  lat?: number; // vị trí ghim trên bản đồ (cả hai cùng có hoặc cùng không có)
+  lng?: number;
 };
 
 export type Expense = {

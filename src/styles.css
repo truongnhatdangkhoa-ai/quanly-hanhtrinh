@@ -32,6 +32,15 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --tab-h: 66px;
+
+  /* Bản đồ: màu theo ngày (xoay vòng 6 màu), viền ghim */
+  --day-0: #2a8fa6;
+  --day-1: #ef8a3d;
+  --day-2: #7a6fd0;
+  --day-3: #d9527f;
+  --day-4: #3fa876;
+  --day-5: #c9a227;
+  --pin-ring: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -397,3 +406,105 @@ label input::placeholder, label textarea::placeholder { color: var(--muted); opa
 .backup-msg { margin-top: 12px; padding: 10px 14px; border-radius: var(--r-sm); font-size: 14px; line-height: 1.4; }
 .backup-msg.ok { background: var(--accent-soft); color: var(--accent-ink); }
 .backup-msg.error { background: var(--bad-soft); color: var(--bad); }
+
+/* ───────────── Bản đồ ───────────── */
+.map-canvas { position: absolute; inset: 0; z-index: 0; background: var(--surface-2); }
+.leaflet-container { font: inherit; background: var(--surface-2); }
+@media (prefers-color-scheme: dark) {
+  .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.92) contrast(.88); }
+}
+.leaflet-touch .leaflet-bar { border: 0; border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-2); }
+.leaflet-touch .leaflet-bar a, .leaflet-bar a:hover { width: 40px; height: 40px; line-height: 40px; background-color: var(--surface); color: var(--ink); border-bottom-color: var(--line); }
+.leaflet-control-attribution { font-size: 10px; background: color-mix(in srgb, var(--surface) 82%, transparent) !important; color: var(--muted) !important; }
+.leaflet-control-attribution a { color: var(--accent-ink) !important; }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-2); }
+.leaflet-popup-content { margin: 12px 14px; font-size: 14px; line-height: 1.4; }
+.map-pop { display: flex; flex-direction: column; gap: 2px; min-width: 120px; }
+.map-pop strong { font-size: 15px; }
+.map-pop span { color: var(--muted); font-size: 13px; }
+.map-pop a { margin-top: 6px; color: var(--accent-ink); font-weight: 700; text-decoration: none; }
+
+/* Ghim hình giọt nước */
+.pin-wrap { background: none; border: 0; }
+.pin { --pc: var(--accent); position: relative; display: block; width: 34px; height: 42px; }
+.pin::before {
+  content: ""; position: absolute; left: 3px; top: 1px; width: 28px; height: 28px; box-sizing: border-box;
+  background: var(--pc); border: 2px solid var(--pin-ring); border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .35);
+}
+.pin-head { position: absolute; left: 3px; top: 1px; width: 28px; height: 28px; display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 800; }
+.pin-head:empty::after { content: ""; width: 10px; height: 10px; border-radius: 50%; background: #fff; }
+.pin.pick { --pc: var(--sun); }
+.pin.pick .pin-head:empty::after { background: var(--sun-ink); }
+.pin.d0 { --pc: var(--day-0); } .pin.d1 { --pc: var(--day-1); } .pin.d2 { --pc: var(--day-2); }
+.pin.d3 { --pc: var(--day-3); } .pin.d4 { --pc: var(--day-4); } .pin.d5 { --pc: var(--day-5); }
+.pin.done { opacity: .6; }
+
+.map-note, .map-legend { position: absolute; z-index: 5; left: 12px; right: 12px; padding: 8px 12px; border-radius: var(--r-sm); font-size: 13px; font-weight: 600; box-shadow: var(--shadow-1); }
+.map-note { top: 12px; background: var(--bad-soft); color: var(--bad); }
+.map-note.info { background: var(--accent-soft); color: var(--accent-ink); right: 68px; }
+.map-legend { left: 12px; right: auto; bottom: 12px; max-width: calc(100% - 76px); background: color-mix(in srgb, var(--surface) 88%, transparent); color: var(--muted); font-size: 11.5px; font-weight: 500; line-height: 1.3; }
+.map-fab {
+  position: absolute; z-index: 5; top: 12px; right: 12px; width: 46px; height: 46px; border-radius: 14px;
+  display: grid; place-items: center; background: var(--surface); color: var(--accent-ink); box-shadow: var(--shadow-2);
+}
+.map-fab:active { transform: scale(.94); }
+
+/* Màn hình chọn địa điểm (toàn màn hình) */
+.picker { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; max-width: 720px; margin: 0 auto; background: var(--bg); animation: fade .2s ease-out; }
+.picker-bar { flex: none; display: flex; align-items: center; gap: 10px; padding: calc(10px + var(--safe-top)) 12px 10px; background: var(--header-grad); }
+.picker-input {
+  flex: 1; min-width: 0; min-height: 44px; padding: 0 14px; border: 0; border-radius: 14px; -webkit-appearance: none; appearance: none;
+  background: rgba(255, 255, 255, .16); color: #fff; font-size: 16px;
+}
+.picker-input::placeholder { color: rgba(255, 255, 255, .7); }
+.picker-input::-webkit-search-cancel-button { -webkit-appearance: none; }
+.picker-map { position: relative; flex: 1; min-height: 0; }
+.picker-results {
+  position: absolute; z-index: 6; left: 12px; right: 12px; top: 12px; max-height: 60%; overflow-y: auto; margin: 0; padding: 6px; list-style: none;
+  background: var(--surface); border-radius: var(--r-md); box-shadow: var(--shadow-2);
+}
+.picker-results button { width: 100%; min-height: 52px; display: flex; flex-direction: column; gap: 1px; text-align: left; padding: 10px 12px; border-radius: var(--r-sm); }
+.picker-results button:active { background: var(--surface-2); }
+.picker-results strong { font-size: 15px; }
+.picker-results button span { color: var(--muted); font-size: 13px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.picker-empty { padding: 12px; color: var(--muted); font-size: 14px; }
+.picker-card {
+  flex: none; display: flex; flex-direction: column; gap: 12px; padding: 14px 14px calc(14px + var(--safe-bottom));
+  background: var(--surface); border-top: 1px solid var(--line); box-shadow: var(--shadow-2);
+}
+.picker-card .primary { flex: none; width: 100%; }
+.picker-place { display: flex; align-items: flex-start; gap: 12px; }
+.picker-place .ico { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent-ink); }
+.picker-place strong { display: block; font-size: 17px; }
+.picker-sub { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.35; }
+.picker-tip { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); opacity: .8; }
+.picker-hint { color: var(--muted); font-size: 14px; }
+.picker-msg { padding: 8px 12px; border-radius: var(--r-sm); background: var(--accent-soft); color: var(--accent-ink); font-size: 14px; font-weight: 600; }
+
+/* Nút chọn trên bản đồ trong form điểm dừng */
+.map-pick {
+  width: 100%; min-height: 64px; display: flex; align-items: center; gap: 12px; text-align: left; margin-bottom: 14px; padding: 12px 14px;
+  border-radius: var(--r-md); background: var(--accent-soft); color: var(--accent-ink);
+}
+.map-pick:active { transform: scale(.99); }
+.map-pick-ico { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); }
+.map-pick-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.map-pick-text strong { font-size: 16px; }
+.map-pick-text span { font-size: 13px; opacity: .85; font-variant-numeric: tabular-nums; }
+.unpin { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; margin: -6px 0 10px; padding: 0 12px 0 10px; border-radius: 99px; background: var(--surface-2); color: var(--muted); font-size: 13px; font-weight: 650; }
+.pinned { display: inline-flex; margin-right: 4px; color: var(--accent-ink); vertical-align: -2px; }
+
+/* Tab Bản đồ của chuyến đi */
+main.detail.map-tab { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+.tripmap { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.tripmap-canvas { position: relative; flex: 1; min-height: 0; }
+.tripmap-empty { padding: 18px 16px; overflow-y: auto; }
+.daychips { flex: none; display: flex; gap: 8px; overflow-x: auto; padding: 10px 14px; scrollbar-width: none; }
+.daychips::-webkit-scrollbar { display: none; }
+.chip { flex: none; display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 40px; padding: 0 14px; border-radius: 99px; background: var(--surface-2); color: var(--muted); font-size: 14px; font-weight: 650; }
+.chip.on { background: var(--brand); color: #fff; }
+@media (prefers-color-scheme: dark) { .chip.on { background: var(--accent-soft); color: var(--accent-ink); } }
+.chip.soft { background: var(--accent-soft); color: var(--accent-ink); }
+.unpinned { flex: none; max-height: 140px; overflow-y: auto; padding: 10px 14px 12px; background: var(--surface); border-top: 1px solid var(--line); }
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }

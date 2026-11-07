@@ -6,6 +6,7 @@ import Logo from "./Logo";
 import Summary from "./Summary";
 import TripForm from "./TripForm";
 import { useData } from "./storage";
+import { useUpdater, type UpdateState } from "./updater";
 import type { Trip } from "./types";
 import {
   countdownText,
@@ -23,6 +24,14 @@ import {
 // Phiên bản đang dùng, ví dụ "v1.0.3 · build 12" (build khớp số cuối của tên bản trên GitHub Releases)
 const VERSION_LABEL = "v" + __APP_VERSION__ + (__APP_BUILD__ ? " · build " + __APP_BUILD__ : "");
 
+const UPDATE_TEXT = (s: UpdateState) =>
+  s.kind === "checking" ? " · đang kiểm tra bản mới…"
+  : s.kind === "latest" ? " · đã là bản mới nhất"
+  : s.kind === "downloading" ? ` · đang tải bản mới (build ${s.build})…`
+  : s.kind === "ready" ? ` · bản mới build ${s.build} đã sẵn sàng`
+  : s.kind === "error" ? " · chưa kiểm tra được, chạm để thử lại"
+  : "";
+
 type Tab = "plan" | "cost" | "sum";
 
 const STATUS_LABEL: Record<TripStatus, string> = {
@@ -36,6 +45,16 @@ export default function App() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("plan");
   const [form, setForm] = useState<"new" | "edit" | null>(null);
+  const upd = useUpdater();
+
+  // Thông báo nổi khi bản mới đã tải xong; hiện ở cả hai màn hình
+  const toast =
+    upd.state.kind === "ready" ? (
+      <div className="toast" role="status">
+        <span>Đã tải bản mới (build {upd.state.build})</span>
+        <button onClick={upd.apply}>Cập nhật ngay</button>
+      </div>
+    ) : null;
 
   // Nút Back của Android quay về danh sách chuyến đi thay vì thoát app
   useEffect(() => {
@@ -88,6 +107,7 @@ export default function App() {
 
     return (
       <div className="app">
+        {toast}
         <main className="home">
           <header className="home-top">
             <div className="brand">
@@ -208,8 +228,16 @@ export default function App() {
               </>
             )}
           </div>
-          <footer className="version" aria-label="Phiên bản ứng dụng">
-            {VERSION_LABEL}
+          <footer>
+            <button
+              className={"version" + (upd.state.kind === "ready" ? " is-ready" : "")}
+              onClick={upd.check}
+              disabled={!upd.enabled}
+              aria-label="Phiên bản ứng dụng, chạm để kiểm tra bản mới"
+            >
+              {VERSION_LABEL}
+              {UPDATE_TEXT(upd.state)}
+            </button>
           </footer>
         </main>
 
@@ -231,6 +259,7 @@ export default function App() {
 
   return (
     <div className="app">
+      {toast}
       <header className="top">
         <div className="top-row">
           <button className="icon-btn on-dark" onClick={back} aria-label="Quay lại">

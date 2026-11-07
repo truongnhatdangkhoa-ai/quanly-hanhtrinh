@@ -130,7 +130,6 @@ b, strong { font-weight: 650; }
 /* ───────────── Màn hình chính ───────────── */
 main.home { display: flex; flex-direction: column; padding-bottom: calc(52px + var(--safe-bottom)); }
 .home-body { flex: 1; width: 100%; padding-bottom: 28px; }
-.version { padding: 0 20px; font-size: 11px; letter-spacing: .02em; color: var(--muted); opacity: .55; user-select: none; font-variant-numeric: tabular-nums; }
 .home-top {
   flex: none;
   background: var(--header-grad); color: #fff;
@@ -365,3 +364,18 @@ label input::placeholder, label textarea::placeholder { color: var(--muted); opa
 .money-unit { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14px; font-weight: 700; pointer-events: none; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* Số phiên bản + trạng thái cập nhật ở góc dưới trái màn hình chính */
+.version { display: block; padding: 0 20px; max-width: 100%; text-align: left; font-size: 11px; letter-spacing: .02em; color: var(--muted); opacity: .6; font-variant-numeric: tabular-nums; }
+.version:disabled { opacity: .55; cursor: default; }
+.version.is-ready { color: var(--accent-ink); opacity: 1; font-weight: 650; }
+
+/* Thông báo đã tải bản mới */
+.toast {
+  position: absolute; z-index: 30; left: 14px; right: 14px; top: calc(10px + var(--safe-top));
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 16px; padding: 10px 10px 10px 16px; font-size: 14px; font-weight: 600;
+  box-shadow: var(--shadow-2); animation: drop .3s cubic-bezier(.2, .8, .2, 1);
+}
+.toast button { flex: none; min-height: 38px; padding: 0 14px; border-radius: 12px; background: var(--sun); color: var(--sun-ink); font-weight: 700; }
+@keyframes drop { from { transform: translateY(-20px); opacity: 0; } }

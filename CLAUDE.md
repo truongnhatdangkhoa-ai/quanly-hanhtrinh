@@ -44,6 +44,16 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - `versionCode` = số lần chạy workflow (`github.run_number`), nên bản sau luôn lớn hơn bản trước
 - Đổi số phiên bản hiển thị: sửa `version` trong `package.json`. App tự hiện `v<version> · build <số>` ở góc dưới trái màn hình chính (`vite.config.ts` nhúng `__APP_VERSION__` và `__APP_BUILD__`; CI truyền `BUILD_NUMBER` ở bước Build web). Chạy `npm run dev` trên máy thì không có số build
 
+## Tự cập nhật giao diện (không cần cài lại APK)
+- Dùng plugin `@capgo/capacitor-updater` (chế độ thủ công, `autoUpdate: false` trong `capacitor.config.ts`). Logic ở `src/updater.ts`
+- Mỗi lần CI chạy, Releases có 3 file: `HanhTrinh.apk`, `bundle.zip` (thư mục `dist`, tức giao diện) và `update.json` (`version`, `build`, `bundle`, `url`)
+- App mở lên (và mỗi khi quay lại app, cách nhau tối thiểu 10 phút) đọc `https://github.com/<repo>/releases/latest/download/update.json`. Nếu `build` lớn hơn `__APP_BUILD__` đang chạy thì tải `bundle.zip`, dùng ở lần mở sau; hiện thông báo "Cập nhật ngay" để dùng liền
+- Chạm vào dòng phiên bản ở góc dưới trái để kiểm tra lại; dòng đó cũng báo trạng thái (đã mới nhất / đang tải / sẵn sàng / lỗi)
+- `markAppReady()` ở `main.tsx` phải luôn được gọi khi app khởi động: nếu giao diện mới bị lỗi, plugin tự quay về bản trước
+- Repo phải ở chế độ Public (app đọc Releases không cần đăng nhập). `fetch` đi qua `CapacitorHttp` để khỏi bị chặn CORS
+- CHỈ cập nhật được phần giao diện/logic web. Đổi icon, màn hình chờ, quyền Android, thêm plugin native hoặc nâng Capacitor vẫn phải cài lại APK (APK mới tự reset về giao diện nhúng sẵn, nên không bị lẫn bản cũ)
+- Lần đầu dùng cơ chế này phải cài APK của bản 1.0.5 trở lên; các bản trước đó không có cơ chế này
+
 ## Quy ước làm việc
 - Mỗi khi hoàn thành một bản: tăng `version` (số này hiện trong app nên luôn phải tăng để nhìn thấy đã cập nhật) trong `package.json`, tick `[x]` trong lộ trình dưới đây, thêm dòng vào "Nhật ký các bản"
 - Giữ CLAUDE.md này cập nhật; sửa file `.md` không kích hoạt build lại
@@ -81,6 +91,7 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - [ ] Nhiều loại tiền (nếu đi nước ngoài)
 
 ## Nhật ký các bản
+- 1.0.5: Tự cập nhật giao diện qua GitHub Releases (bundle.zip + update.json), không cần cài lại APK cho các thay đổi giao diện/logic. Dòng phiên bản báo trạng thái cập nhật, có thông báo "Cập nhật ngay".
 - 1.0.4: Hiện số phiên bản mờ ở góc dưới trái màn hình chính (dạng `v1.0.4 · build 12`, build = số lần chạy workflow, khớp tên bản trên Releases) để biết đã cập nhật chưa.
 - 1.0.3: Thiết kế lại giao diện: màn hình chính có thẻ chuyến nổi bật + thẻ chuyến có trạng thái, tab dưới có icon, lịch trình dạng timeline, chi phí gom theo ngày, tổng kết có biểu đồ vành khuyên, form dạng bottom sheet, chế độ tối. Không đổi dữ liệu/chức năng.
 - 1.0.2: Sửa workflow để tự build ở mọi nhánh (trước đó chỉ main/master nên nhánh khác không tự chạy).

@@ -35,6 +35,9 @@ jobs:
 
       - name: Build web
         run: npm run build
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+          REPO: ${{ github.repository }}
 
       - name: Tạo dự án Android
         run: |
@@ -67,12 +70,23 @@ jobs:
       - name: Đổi tên APK
         run: cp android/app/build/outputs/apk/debug/app-debug.apk HanhTrinh.apk
 
+      - name: Tạo gói cập nhật giao diện (app tự tải, không cần cài lại APK)
+        run: |
+          (cd dist && zip -qr ../bundle.zip .)
+          TAG="v${VERSION_NAME}.${{ github.run_number }}"
+          printf '{"version":"%s","build":%s,"bundle":"%s","url":"https://github.com/%s/releases/download/%s/bundle.zip"}\n' \
+            "${VERSION_NAME}" "${{ github.run_number }}" "${VERSION_NAME}.${{ github.run_number }}" "${{ github.repository }}" "${TAG}" > update.json
+          cat update.json
+
       - name: Đăng APK lên Releases
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.VERSION_NAME }}.${{ github.run_number }}
           name: Hành Trình ${{ env.VERSION_NAME }} (build ${{ github.run_number }})
-          files: HanhTrinh.apk
+          files: |
+            HanhTrinh.apk
+            bundle.zip
+            update.json
           make_latest: true
 
       - name: Lưu APK vào Artifacts (dự phòng)

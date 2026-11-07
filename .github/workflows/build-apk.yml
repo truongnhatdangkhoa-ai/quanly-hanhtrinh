@@ -56,10 +56,12 @@ jobs:
           sed -i "s/versionName \"[^\"]*\"/versionName \"${VERSION_NAME}.${{ github.run_number }}\"/" android/app/build.gradle
           echo "VERSION_NAME=${VERSION_NAME}" >> "$GITHUB_ENV"
 
-      - name: Nâng compileSdk lên 35 và Android Gradle Plugin (thư viện của plugin cập nhật yêu cầu)
+      - name: Nâng compileSdk 35, minSdk 23 và Android Gradle Plugin (thư viện của plugin cập nhật yêu cầu)
         run: |
           # Chỉ nâng compileSdk (để biên dịch được). targetSdk giữ 34 để giao diện không đổi hành vi trên Android 15.
           sed -i -E "s/compileSdkVersion = [0-9]+/compileSdkVersion = 35/" android/variables.gradle
+          # Thư viện Google đi kèm plugin yêu cầu Android 6.0 (API 23) trở lên
+          sed -i -E "s/minSdkVersion = [0-9]+/minSdkVersion = 23/" android/variables.gradle
           sed -i -E "s#com.android.tools.build:gradle:[0-9.]+#com.android.tools.build:gradle:8.7.2#" android/build.gradle
           sed -i -E "s#gradle-[0-9.]+-(all|bin)\.zip#gradle-8.9-all.zip#" android/gradle/wrapper/gradle-wrapper.properties
           echo "--- variables.gradle"; cat android/variables.gradle

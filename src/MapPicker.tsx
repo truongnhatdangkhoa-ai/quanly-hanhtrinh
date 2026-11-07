@@ -4,6 +4,7 @@ import * as L from "leaflet";
 import Icon from "./Icon";
 import { coordsText, reversePlace, searchPlaces, type LatLng, type Place } from "./geo";
 import { createMap, pinIcon } from "./mapKit";
+import { resolveMapsInput } from "./mapsLink";
 import { canOpenSettings, getMyPosition, openLocationSettings } from "./location";
 
 export type Picked = { name: string; lat: number; lng: number };
@@ -178,6 +179,19 @@ export default function MapPicker({
     setMsg("");
     setResults(null);
     try {
+      // Dán link Google Maps (kể cả link rút gọn) hoặc tọa độ: ghim thẳng, không cần tìm theo tên
+      const link = await resolveMapsInput(q);
+      if (link.kind === "ok") {
+        const { lat, lng, name } = link.point;
+        mapRef.current?.setView([lat, lng], 17);
+        setPointRef.current?.({ lat, lng }, name ? { name, address: "" } : undefined);
+        setQuery("");
+        return;
+      }
+      if (link.kind === "fail") {
+        setMsg("Chưa đọc được link này. Kiểm tra mạng, hoặc trong Google Maps giữ vào điểm cần chọn rồi dán tọa độ (ví dụ 10.4034, 105.0123).");
+        return;
+      }
       const b = mapRef.current?.getBounds();
       const r = await searchPlaces(
         q,
@@ -248,7 +262,7 @@ export default function MapPicker({
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Tìm địa điểm, ví dụ: Hồ Xuân Hương"
+          placeholder="Tìm tên hoặc dán link Google Maps"
           enterKeyHint="search"
           aria-label="Tìm địa điểm"
         />

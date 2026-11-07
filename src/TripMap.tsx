@@ -4,7 +4,8 @@ import Icon from "./Icon";
 import MapPicker from "./MapPicker";
 import { byDayTime, directionsUrl, hasPin } from "./geo";
 import { createMap, pinIcon } from "./mapKit";
-import { applyOrder, fmtKm, fmtMin, optimizeRoute, roadRoute, type RouteInfo, type RouteLine, type RouteResult } from "./route";
+import { MAX_PREFETCH, planTiles, prefetchTiles } from "./offlineMap";
+import { applyOrder, fmtKm, fmtMin, optimizeRoute, pathLen, roadRoute, type RouteInfo, type RouteLine, type RouteResult } from "./route";
 import type { Stop, Trip } from "./types";
 import { tripDayCount } from "./utils";
 
@@ -34,6 +35,21 @@ function popupEl(s: Stop & { lat: number; lng: number }): HTMLElement {
   return box;
 }
 
+function useOnline() {
+  const [on, setOn] = useState(navigator.onLine);
+  useEffect(() => {
+    const u = () => setOn(true);
+    const d = () => setOn(false);
+    window.addEventListener("online", u);
+    window.addEventListener("offline", d);
+    return () => {
+      window.removeEventListener("online", u);
+      window.removeEventListener("offline", d);
+    };
+  }, []);
+  return on;
+}
+
 export default function TripMap({ trip, stops, onChange }: Props) {
   const days = tripDayCount(trip.startDate, trip.endDate);
   const [day, setDay] = useState(0); // 0 = tất cả các ngày
@@ -43,6 +59,7 @@ export default function TripMap({ trip, stops, onChange }: Props) {
   const [routing, setRouting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
+  const online = useOnline();
 
   const sorted = [...stops].sort(byDayTime);
   const pinned = sorted.filter(hasPin);
@@ -154,11 +171,16 @@ export default function TripMap({ trip, stops, onChange }: Props) {
                 {dayRoute ? (
                   <>
                     <b>{fmtKm(dayRoute.distance)}</b> · khoảng {fmtMin(dayRoute.duration)} lái xe · {shown.length} điểm
+                    {dayRoute.cached && <span className="muted"> · dùng đường đã lưu từ lần có mạng</span>}
                   </>
                 ) : routing ? (
                   "Đang tính quãng đường…"
                 ) : (
-                  `${shown.length} điểm · chưa tính được quãng đường (cần có mạng)`
+                  <>
+                    <b>≈ {fmtKm(pathLen(shown, shown.map((_, i) => i)))}</b> theo đường chim bay · {shown.length} điểm
+                    <br />
+                    <span className="muted">{online ? "Chưa lấy được đường bộ, thử lại sau." : "Đang offline nên chưa có quãng đường thật."}</span>
+                  </>
                 )}
                 {notice && (
                   <>
@@ -178,7 +200,7 @@ export default function TripMap({ trip, stops, onChange }: Props) {
       )}
 
       {pinned.length > 0 ? (
-        <MapView stops={plan ? plan.order : shown} line={plan ? plan.result.line : day ? dayRoute?.line ?? null : null} />
+        <MapView online={online} stops={plan ? plan.order : shown} line={plan ? plan.result.line : day ? dayRoute?.line ?? null : null} />
       ) : (
         <div className="tripmap-empty grow">
           <div className="empty-state">
@@ -223,10 +245,36 @@ export default function TripMap({ trip, stops, onChange }: Props) {
   );
 }
 
-function MapView({ stops, line }: { stops: (Stop & { lat: number; lng: number })[]; line: RouteLine | null }) {
+function MapView({ stops, line, online }: { stops: (Stop & { lat: number; lng: number })[]; line: RouteLine | null; online: boolean }) {
   const host = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
+  const [dl, setDl] = useState<{ done: number; total: number } | null>(null);
+  const [dlMsg, setDlMsg] = useState("");
+  const stopRef = useRef({ cancelled: false });
+  useEffect(() => () => void (stopRef.current.cancelled = true), []);
+
+  // Lưu sẵn các ô bản đồ quanh những điểm đang hiện để dùng khi mất sóng (giới hạn MAX_PREFETCH ô mỗi lần)
+  const saveArea = async () => {
+    const map = mapRef.current;
+    if (!map || dl || stops.length === 0) return;
+    const b = L.latLngBounds(stops.map((s) => [s.lat, s.lng] as L.LatLngTuple));
+    b.extend([b.getSouth() - 0.006, b.getWest() - 0.006]);
+    b.extend([b.getNorth() + 0.006, b.getEast() + 0.006]);
+    const area = b.pad(0.25);
+    const z0 = Math.min(16, map.getBoundsZoom(area));
+    const tiles = planTiles(area, z0);
+    setDlMsg("");
+    setDl({ done: 0, total: tiles.length });
+    stopRef.current.cancelled = false;
+    const r = await prefetchTiles(tiles, (done, total) => setDl({ done, total }), stopRef.current);
+    setDl(null);
+    setDlMsg(
+      r.failed > tiles.length / 2
+        ? "Chưa lưu được, kiểm tra kết nối mạng rồi thử lại."
+        : `Đã lưu bản đồ khu vực này (${r.saved + r.had} ô${r.failed ? ", " + r.failed + " ô lỗi" : ""}). Mất sóng vẫn xem được.`,
+    );
+  };
 
   useEffect(() => {
     if (!host.current) return;
@@ -281,6 +329,20 @@ function MapView({ stops, line }: { stops: (Stop & { lat: number; lng: number })
   return (
     <div className="tripmap-canvas">
       <div ref={host} className="map-canvas" />
+      {!online && (
+        <div className="map-note">Đang offline: bản đồ chỉ hiện các khu vực đã xem hoặc đã lưu. Ghim và đường nét đứt vẫn dùng được.</div>
+      )}
+      {online && (
+      <button type="button" className="map-dl" onClick={() => void saveArea()} disabled={!!dl} title={"Lưu bản đồ khu vực này (tối đa " + MAX_PREFETCH + " ô)"}>
+        <Icon name="download" size={16} />
+        {dl ? `Đang lưu ${dl.done}/${dl.total}` : "Lưu bản đồ offline"}
+      </button>
+      )}
+      {dlMsg && !dl && (
+        <button type="button" className="map-dlmsg" onClick={() => setDlMsg("")}>
+          {dlMsg}
+        </button>
+      )}
       {stops.length > 1 && (
         <div className="map-legend">
           {line ? "Đường bộ ước tính cho ô tô" : "Đường nét đứt nối thẳng các điểm theo thứ tự, không phải đường đi thực tế"}

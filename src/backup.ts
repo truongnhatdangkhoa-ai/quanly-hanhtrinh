@@ -80,6 +80,7 @@ export function parseBackup(text: string): ParsedBackup {
       startDate: str(t.startDate),
       endDate: str(t.endDate),
       budget: Math.max(0, Math.round(num(t.budget))),
+      ...(t.remindDeparture === true ? { remindDeparture: true } : {}),
     });
   }
   const ids = new Set(trips.map((t) => t.id));
@@ -92,6 +93,7 @@ export function parseBackup(text: string): ParsedBackup {
     }
     const lat = coord(s.lat, 90);
     const lng = coord(s.lng, 180);
+    const rm = typeof s.remind === "number" && isFinite(s.remind) && s.remind >= 0 && s.remind <= 10080 ? Math.round(s.remind) : undefined;
     stops.push({
       id: str(s.id),
       tripId: str(s.tripId),
@@ -101,6 +103,7 @@ export function parseBackup(text: string): ParsedBackup {
       note: str(s.note),
       done: s.done === true,
       ...(lat !== undefined && lng !== undefined ? { lat, lng } : {}),
+      ...(rm !== undefined ? { remind: rm } : {}),
     });
   }
 

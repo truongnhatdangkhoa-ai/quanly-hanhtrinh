@@ -24,6 +24,9 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - `src/MapPicker.tsx` màn hình toàn màn hình chọn địa điểm: tìm theo tên, chạm bản đồ để ghim, kéo ghim, nút "Vị trí của tôi", tự điền tên + địa chỉ. Render qua `createPortal` ra `body` (bottom sheet có transform sẽ làm lệch `position: fixed`). Hook `useBackClose` thêm 1 mục lịch sử để nút Back Android chỉ đóng bản đồ
 - `src/route.ts` đường đi và gợi ý thứ tự: `roadRoute` (đường bộ thật qua OSRM), `optimizeRoute` (OSRM `trip`, điểm đầu cố định; offline hoặc lỗi thì tự tính theo đường chim bay bằng gần nhất + 2-opt), `applyOrder` (áp thứ tự mới), `fmtKm`/`fmtMin`
 - `src/TripMap.tsx` tab "Bản đồ" của chuyến: ghim đánh số theo giờ trong ngày, màu theo ngày (`--day-0..5`), lọc theo ngày, đường nét đứt nối thẳng (không phải đường đi thực), danh sách điểm chưa ghim để ghim nhanh
+- `src/useDragSort.ts` hook kéo thả đổi thứ tự bằng pointer events (không dùng thư viện): tay cầm `.grip` bên phải thẻ điểm dừng (`touch-action: none`), listener gắn vào `window` (vì React có thể chuyển node DOM giữa chừng làm mất pointer capture), tự cuộn khi kéo sát mép, phím mũi tên lên/xuống cũng đổi chỗ được. Khi thả, `Itinerary.reorder` dùng `applyOrder` nên khung giờ cũ được gán lại theo thứ tự mới (giống "Sắp xếp tuyến")
+- `src/notify.ts` thông báo nhắc bằng `@capacitor/local-notifications` (chỉ chạy trên APK). `syncReminders(data)` huỷ hết thông báo đang chờ rồi đặt lại toàn bộ nhắc còn ở tương lai (tối đa 60 cái gần nhất), gọi từ `App.tsx` mỗi khi dữ liệu đổi và khi quay lại app. Nhắc điểm dừng: `Stop.remind` (số phút trước giờ, 0 = đúng giờ, cần điểm có giờ, bỏ qua điểm đã tick "đã đến"). Nhắc khởi hành: `Trip.remindDeparture` (20:00 tối hôm trước + 07:00 sáng ngày đi). Check-in/check-out chỉ là điểm dừng có nhắc (form có nút chọn nhanh tên). `src/Reminder.tsx` (`NotifyHint`) xin quyền khi bật nhắc, bị từ chối thì hiện nút mở cài đặt
+- `src/offlineMap.ts` bộ nhớ offline cho bản đồ bằng IndexedDB (`hanh-trinh-offline`): `CachedTileLayer` (ô có trong máy dùng ngay, chưa có thì tải qua `<img crossOrigin>` rồi vẽ vào canvas lưu lại; KHÔNG dùng fetch vì `CapacitorHttp` can thiệp fetch; tối đa 3000 ô, xóa ô cũ nhất), `planTiles`/`prefetchTiles` (nút "Lưu bản đồ offline" ở tab Bản đồ, tối đa 400 ô mỗi lần, 3 luồng) và cache đường đi OSRM (60 mục) để offline vẫn xem được quãng đường đã tính trước đó
 - `src/types.ts` kiểu dữ liệu + danh sách danh mục chi
 - `src/MoneyInput.tsx` ô nhập tiền: gõ 100000 tự hiện 100.000, đơn vị VNĐ nằm trong ô
 - `src/Icon.tsx` bộ icon SVG (thay emoji), `CatBadge` + màu từng danh mục chi (`CAT_COLOR`)
@@ -42,6 +45,12 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - Tuyến đường: chọn một ngày ở tab Bản đồ thì hiện quãng đường và thời gian lái xe (OSRM, chỉ tính ô tô, thời gian chỉ là ước tính) và vẽ đường bộ thật. Nút "Sắp xếp tuyến" (từ 3 điểm đã ghim trở lên) gợi ý thứ tự ngắn nhất, cho XEM TRƯỚC trên bản đồ rồi mới "Áp dụng". Điểm đầu của ngày giữ nguyên làm nơi xuất phát; điểm chưa ghim không tham gia. Khi áp dụng, các khung giờ cũ được gán lại theo thứ tự mới (điểm thứ i nhận giờ thứ i, điểm không có giờ vẫn không có giờ)
 - Gợi ý tuyến CHỈ tối ưu quãng đường: chưa tính giờ mở cửa, giờ ăn, giờ ngủ trưa của bé. OSRM bản công cộng chỉ nên dùng cho app cá nhân (tối đa 12 điểm/lần gợi ý, 25 điểm/lần vẽ đường); nhiều người dùng thì tự dựng máy chủ OSRM hoặc đổi nhà cung cấp ở `route.ts`
 - Chế độ tối: ô bản đồ đảo màu bằng CSS filter ở `.leaflet-tile-pane`; ghim, bong bóng thông tin dùng biến CSS như phần còn lại
+
+## Offline và nhắc nhở
+- Dùng ô OSM: chỉ lưu ô người dùng đã xem và vùng quanh các điểm khi bấm "Lưu bản đồ offline" (giới hạn 400 ô/lần) để đúng quy định sử dụng ô miễn phí của OSM (không tải hàng loạt). Nếu cần lưu vùng lớn hơn thì đổi sang nhà cung cấp cho phép (MapTiler, Stadia...) ở `offlineMap.ts` + `mapKit.ts`
+- Mất mạng: tab Bản đồ hiện thông báo offline, quãng đường tự chuyển sang đường chim bay (hoặc dùng đường thật đã lưu nếu trước đó có tính cho đúng chuỗi điểm này)
+- Thông báo cần quyền `POST_NOTIFICATIONS` (Android 13+), `USE_EXACT_ALARM`, `SCHEDULE_EXACT_ALARM`: workflow chèn vào AndroidManifest. Plugin tự đăng ký lại báo thức sau khi khởi động lại máy. Một số hãng máy (Xiaomi, Oppo...) có thể chặn báo thức nền: người dùng cần cho app chạy nền/tự khởi động
+- Kéo thả đổi thứ tự dựa trên khung giờ: điểm không có giờ nằm cuối ngày, kéo lên trên thì nhận khung giờ của vị trí đó và điểm bị đẩy xuống mất giờ (cùng quy ước với "Sắp xếp tuyến")
 
 ## Quy ước giao diện (UI/UX)
 - Màu, bo góc, đổ bóng, chiều cao tab: chỉ dùng biến CSS ở `:root` đầu `src/styles.css` (có sẵn bản tối trong `@media (prefers-color-scheme: dark)`). Không viết mã màu cứng trong component, trừ màu danh mục chi ở `CAT_COLOR` (`src/Icon.tsx`)
@@ -89,10 +98,10 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - [x] Tự build APK lên GitHub Releases khi có file mới
 
 ### Bản 2 (1.1.x) – thời gian và chuẩn bị
-- [ ] Thông báo nhắc: giờ xuất phát, check-in/check-out (trước 1 ngày, 1 giờ)
+- [x] Thông báo nhắc: giờ xuất phát, check-in/check-out (trước 1 ngày, 1 giờ) (1.0.10)
 - [ ] Checklist hành lý có mẫu sẵn (biển, núi, nước ngoài), tick từng món
 - [ ] Checklist riêng cho từng thành viên gia đình (đồ của bé, thuốc men, giấy tờ)
-- [ ] Kéo thả đổi thứ tự điểm dừng
+- [x] Kéo thả đổi thứ tự điểm dừng (1.0.10)
 - [ ] Gắn nhãn "ai chi" cho khoản chi (không chia nợ)
 
 ### Bản 3 (1.2.x) – giấy tờ và kỷ niệm
@@ -105,6 +114,7 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 ### Bản 4 (1.3.x) – hoàn thiện
 - [x] Sao lưu/khôi phục ra file JSON (1.0.6; chia sẻ được sang Drive/Zalo qua bảng chia sẻ của Android)
 - [ ] Sao lưu tự động lên Google Drive
+- [x] Bản đồ dùng được khi mất sóng: lưu ô bản đồ và đường đi vào máy (1.0.10)
 - [ ] Biểu đồ tròn/cột
 - [ ] Dự báo thời tiết tại điểm đến
 - [x] Bản đồ trong app: chọn địa điểm trên bản đồ khi thêm điểm dừng, tab Bản đồ xem toàn bộ chuyến (1.0.7)
@@ -114,6 +124,7 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - [ ] Nhiều loại tiền (nếu đi nước ngoài)
 
 ## Nhật ký các bản
+- 1.0.10: Ba tính năng. (1) Kéo thả đổi thứ tự điểm dừng bằng tay cầm bên phải thẻ (giờ gán lại theo thứ tự mới). (2) Thông báo nhắc: mỗi điểm dừng có giờ chọn được nhắc đúng giờ / trước 15 phút / 1 giờ / 1 ngày; chuyến đi có nhắc ngày khởi hành; form điểm dừng có nút chọn nhanh Check-in/Check-out khách sạn; xin quyền thông báo và gợi ý mở cài đặt nếu bị từ chối. (3) Bản đồ offline: ô bản đồ đã xem tự lưu vào máy, nút "Lưu bản đồ offline" tải sẵn khu vực quanh các điểm, đường đi đã tính được lưu lại, hiện thông báo khi offline và quãng đường chim bay thay thế. Thêm plugin native `@capacitor/local-notifications` và quyền thông báo nên PHẢI cài lại APK một lần. Dữ liệu cũ vẫn dùng bình thường (thêm hai trường tùy chọn `remind`, `remindDeparture`, sao lưu JSON giữ cả hai). Chưa chạy thử trên máy thật (môi trường soạn không có mạng để cài thư viện và build).
 - 1.0.9: Gợi ý mở cài đặt khi thiếu quyền vị trí: nút "Vị trí của tôi" tự xin quyền, nếu bị từ chối hoặc GPS tắt thì hiện nút mở thẳng trang cài đặt của app / cài đặt GPS, quay lại app thì tự thử lại. Thêm plugin native `@capacitor/geolocation` và `capacitor-native-settings` nên PHẢI cài lại APK một lần. Chưa chạy thử trên máy thật (môi trường soạn không có mạng để cài thư viện và build).
 - 1.0.8: Liên kết hành trình bằng bản đồ. Tab Bản đồ: chọn một ngày để xem quãng đường và thời gian lái xe, vẽ đường bộ thật nối các điểm. Nút "Sắp xếp tuyến" gợi ý thứ tự đi ngắn nhất (điểm đầu giữ nguyên), xem trước trên bản đồ rồi Áp dụng (giờ được gán lại theo thứ tự mới). Offline thì tự tính theo đường chim bay. Chỉ đổi giao diện/logic nên cập nhật qua mạng được, không cần cài lại APK. Chưa chạy thử trên máy thật.
 - 1.0.7: Bản đồ. Thêm/sửa điểm dừng có nút "Chọn trên bản đồ": tìm theo tên hoặc chạm/kéo ghim, tự điền tên và địa chỉ, có nút "Vị trí của tôi". Thêm tab "Bản đồ" ở màn hình chuyến đi: ghim đánh số theo giờ, màu theo ngày, lọc theo ngày, chạm ghim để xem và chỉ đường, danh sách điểm chưa ghim để ghim nhanh. Điểm đã ghim có biểu tượng ghim trong lịch trình và nút chỉ đường dùng đúng tọa độ. Thêm thư viện `leaflet`. Giao diện/logic cập nhật qua mạng được; riêng nút "Vị trí của tôi" cần cài lại APK một lần (thêm quyền vị trí). Chưa chạy thử trên máy thật (môi trường soạn không có mạng để cài thư viện và build).

@@ -1,5 +1,6 @@
 import * as L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { CachedTileLayer, TILE_URL } from "./offlineMap";
 
 // Bản đồ nền OpenStreetMap (miễn phí). Cần có mạng để tải ô bản đồ; dữ liệu chuyến đi vẫn dùng offline như cũ.
 export const VN_CENTER: L.LatLngTuple = [16.05, 106.3];
@@ -8,7 +9,8 @@ export function createMap(el: HTMLElement): L.Map {
   const map = L.map(el, { zoomControl: false, center: VN_CENTER, zoom: 5, worldCopyJump: true });
   L.control.zoom({ position: "bottomright", zoomInTitle: "Phóng to", zoomOutTitle: "Thu nhỏ" }).addTo(map);
   map.attributionControl.setPrefix(false);
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  // Ô bản đồ xem một lần được lưu vào máy (IndexedDB) nên lần sau mất sóng vẫn hiện được
+  new CachedTileLayer(TILE_URL, {
     maxZoom: 19,
     attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>',
   }).addTo(map);

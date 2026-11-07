@@ -30,6 +30,13 @@ const PATHS: Record<string, ReactNode> = {
       <path d="M12 7v5l3 2" />
     </>
   ),
+  grip: <path d="M9 5h.01M15 5h.01M9 12h.01M15 12h.01M9 19h.01M15 19h.01" strokeWidth="3.4" />,
+  bell: (
+    <>
+      <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.7 21a2 2 0 01-3.4 0" />
+    </>
+  ),
   route: (
     <>
       <circle cx="6" cy="19" r="2.5" />

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Backup from "./Backup";
 import Expenses from "./Expenses";
 import Icon from "./Icon";
@@ -7,6 +7,7 @@ import Logo from "./Logo";
 import Summary from "./Summary";
 import TripMap from "./TripMap";
 import TripForm from "./TripForm";
+import { syncReminders } from "./notify";
 import { useData } from "./storage";
 import { useUpdater, type UpdateState } from "./updater";
 import type { Trip } from "./types";
@@ -58,6 +59,19 @@ export default function App() {
         <button onClick={upd.apply}>Cập nhật ngay</button>
       </div>
     ) : null;
+
+  // Đặt lại thông báo nhắc mỗi khi dữ liệu đổi, và khi quay lại app (vd. vừa cấp quyền thông báo trong Cài đặt)
+  const dataRef = useRef(data);
+  dataRef.current = data;
+  useEffect(() => {
+    const t = window.setTimeout(() => void syncReminders(data), 800);
+    return () => window.clearTimeout(t);
+  }, [data]);
+  useEffect(() => {
+    const onVis = () => document.visibilityState === "visible" && void syncReminders(dataRef.current);
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
 
   // Nút Back của Android quay về danh sách chuyến đi thay vì thoát app
   useEffect(() => {

@@ -1,4 +1,5 @@
 import { getJson, type LatLng } from "./geo";
+import { getRouteCache, putRouteCache } from "./offlineMap";
 import type { Stop } from "./types";
 
 // Tính đường đi và gợi ý thứ tự ghé các điểm.
@@ -10,7 +11,7 @@ const MAX_TRIP_POINTS = 12; // gợi ý tối ưu tối đa ngần này điểm 
 const MAX_ROUTE_POINTS = 25;
 
 export type RouteLine = [number, number][]; // [vĩ độ, kinh độ]
-export type RouteInfo = { distance: number; duration: number; line: RouteLine }; // mét, giây
+export type RouteInfo = { distance: number; duration: number; line: RouteLine; cached?: boolean }; // mét, giây
 export type RouteResult = { order: number[]; distance: number; duration: number | null; line: RouteLine | null };
 
 const coordStr = (pts: LatLng[]) => pts.map((p) => `${p.lng.toFixed(6)},${p.lat.toFixed(6)}`).join(";");
@@ -18,15 +19,24 @@ const flip = (c: [number, number][]): RouteLine => c.map(([lng, lat]) => [lat, l
 
 type OsrmGeom = { coordinates: [number, number][] };
 
-// Đường đi thật theo đúng thứ tự các điểm đưa vào
+// Đường đi thật theo đúng thứ tự các điểm đưa vào. Tính được thì lưu vào máy; mất mạng thì dùng bản đã lưu (nếu có).
 export async function roadRoute(pts: LatLng[]): Promise<RouteInfo> {
   if (pts.length < 2 || pts.length > MAX_ROUTE_POINTS) throw new Error("số điểm không hợp lệ");
-  const d = await getJson<{ code: string; routes?: { distance: number; duration: number; geometry: OsrmGeom }[] }>(
-    `${OSRM}/route/v1/driving/${coordStr(pts)}?overview=full&geometries=geojson`,
-  );
-  const r = d.routes?.[0];
-  if (d.code !== "Ok" || !r) throw new Error("không có đường đi");
-  return { distance: r.distance, duration: r.duration, line: flip(r.geometry.coordinates) };
+  const key = coordStr(pts);
+  try {
+    const d = await getJson<{ code: string; routes?: { distance: number; duration: number; geometry: OsrmGeom }[] }>(
+      `${OSRM}/route/v1/driving/${key}?overview=full&geometries=geojson`,
+    );
+    const r = d.routes?.[0];
+    if (d.code !== "Ok" || !r) throw new Error("không có đường đi");
+    const info: RouteInfo = { distance: r.distance, duration: r.duration, line: flip(r.geometry.coordinates) };
+    void putRouteCache(key, info);
+    return info;
+  } catch (e) {
+    const cached = await getRouteCache<RouteInfo>(key);
+    if (cached) return { ...cached, cached: true };
+    throw e;
+  }
 }
 
 async function osrmTrip(pts: LatLng[]): Promise<RouteResult> {
@@ -57,7 +67,7 @@ export function haversine(a: LatLng, b: LatLng): number {
   return 12742000 * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-function pathLen(pts: LatLng[], order: number[]): number {
+export function pathLen(pts: LatLng[], order: number[]): number {
   let s = 0;
   for (let i = 1; i < order.length; i++) s += haversine(pts[order[i - 1]], pts[order[i]]);
   return s;

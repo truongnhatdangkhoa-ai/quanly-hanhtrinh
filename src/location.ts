@@ -42,6 +42,8 @@ export async function getMyPosition(): Promise<LocResult> {
 /** Chỉ có ý nghĩa trên APK; trên trình duyệt không mở được cài đặt. */
 export const canOpenSettings = () => Capacitor.isNativePlatform();
 
+export const openAppSettings = () => openLocationSettings("app");
+
 /** Mở trang cài đặt của ứng dụng (để bật quyền Vị trí) hoặc cài đặt GPS. */
 export async function openLocationSettings(which: "app" | "gps") {
   try {

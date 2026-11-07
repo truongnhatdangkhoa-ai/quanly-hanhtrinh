@@ -2,6 +2,7 @@ import { useState } from "react";
 import Icon from "./Icon";
 import Modal from "./Modal";
 import MoneyInput from "./MoneyInput";
+import NotifyHint from "./Reminder";
 import type { Trip } from "./types";
 import { addDays, todayStr, uid } from "./utils";
 
@@ -20,6 +21,7 @@ export default function TripForm({
   const [destination, setDestination] = useState(trip?.destination ?? "");
   const [startDate, setStart] = useState(trip?.startDate ?? todayStr());
   const [endDate, setEnd] = useState(trip?.endDate ?? addDays(todayStr(), 2));
+  const [remindDep, setRemindDep] = useState(trip?.remindDeparture === true);
   const [budget, setBudget] = useState(trip ? String(trip.budget || "") : "");
 
   const valid = name.trim() && startDate && endDate && endDate >= startDate;
@@ -48,6 +50,11 @@ export default function TripForm({
         Ngân sách dự kiến (VNĐ)
         <MoneyInput value={budget} onChange={setBudget} placeholder="10.000.000" />
       </label>
+      <label className="check-row">
+        <input type="checkbox" checked={remindDep} onChange={(e) => setRemindDep(e.target.checked)} />
+        <span>Nhắc ngày khởi hành (20:00 tối hôm trước và 07:00 sáng hôm đi)</span>
+      </label>
+      <NotifyHint active={remindDep} />
       {!valid && <p className="hint">Nhập tên chuyến đi, ngày về không được trước ngày đi.</p>}
       <div className="actions">
         {onDelete && (
@@ -66,6 +73,7 @@ export default function TripForm({
               startDate,
               endDate,
               budget: Number(budget) || 0,
+              remindDeparture: remindDep || undefined,
             })
           }
         >

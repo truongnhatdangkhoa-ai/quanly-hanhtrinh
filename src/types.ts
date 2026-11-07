@@ -5,6 +5,7 @@ export type Trip = {
   startDate: string; // yyyy-mm-dd
   endDate: string;
   budget: number;
+  remindDeparture?: boolean; // nhắc tối hôm trước (20:00) và sáng ngày đi (07:00)
 };
 
 export type Stop = {
@@ -17,6 +18,7 @@ export type Stop = {
   done: boolean;
   lat?: number; // vị trí ghim trên bản đồ (cả hai cùng có hoặc cùng không có)
   lng?: number;
+  remind?: number; // nhắc trước giờ của điểm này bao nhiêu phút (0 = đúng giờ); không có = không nhắc
 };
 
 export type Expense = {

@@ -49,6 +49,28 @@ jobs:
           cp -r android-res/. android/app/src/main/res/
           find android/app/src/main/res -name "splash.png" -exec cp assets/splash.png {} \;
 
+      - name: Thêm quyền vị trí và thông báo (nút "Vị trí của tôi", nhắc nhở)
+        run: |
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          # Chèn ngay trước </manifest> (không phụ thuộc dòng INTERNET của mẫu), bỏ qua quyền đã có
+          python3 - "$MANIFEST" <<'PY'
+          import sys
+          p = sys.argv[1]
+          s = open(p, encoding="utf-8").read()
+          perms = [
+              '<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />',
+              '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
+              '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
+              '<uses-permission android:name="android.permission.USE_EXACT_ALARM" />',
+              '<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />',
+          ]
+          add = "".join("    " + x + "\n" for x in perms if x.split('"')[1] not in s)
+          assert "</manifest>" in s, "AndroidManifest.xml không có thẻ </manifest>"
+          s = s.replace("</manifest>", add + "</manifest>", 1)
+          open(p, "w", encoding="utf-8").write(s)
+          PY
+          grep -n "uses-permission" "$MANIFEST"
+
       - name: Đặt số phiên bản
         run: |
           VERSION_NAME="$(node -p "require('./package.json').version")"
@@ -78,6 +100,14 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
+
+      - name: Kiểm tra APK có đủ quyền (lỗi nếu thiếu)
+        run: |
+          AAPT2="$(ls -d "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)"
+          "$AAPT2" dump permissions android/app/build/outputs/apk/debug/app-debug.apk | tee perms.txt
+          for P in ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION POST_NOTIFICATIONS; do
+            grep -q "android.permission.$P" perms.txt || { echo "::error::APK thiếu quyền $P"; exit 1; }
+          done
 
       - name: Đổi tên APK
         run: cp android/app/build/outputs/apk/debug/app-debug.apk HanhTrinh.apk

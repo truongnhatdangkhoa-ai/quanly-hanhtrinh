@@ -52,6 +52,7 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - `markAppReady()` ở `main.tsx` phải luôn được gọi khi app khởi động: nếu giao diện mới bị lỗi, plugin tự quay về bản trước
 - Repo phải ở chế độ Public (app đọc Releases không cần đăng nhập). `fetch` đi qua `CapacitorHttp` để khỏi bị chặn CORS
 - CHỈ cập nhật được phần giao diện/logic web. Đổi icon, màn hình chờ, quyền Android, thêm plugin native hoặc nâng Capacitor vẫn phải cài lại APK (APK mới tự reset về giao diện nhúng sẵn, nên không bị lẫn bản cũ)
+- Plugin cập nhật cần compileSdk 35: workflow tự nâng `compileSdkVersion` lên 35 và Android Gradle Plugin lên 8.7.2 / Gradle 8.9 sau khi `cap add android` (targetSdk giữ 34). Nếu build lỗi liên quan SDK/AGP thì xem bước "Nâng compileSdk" trong workflow
 - Lần đầu dùng cơ chế này phải cài APK của bản 1.0.5 trở lên; các bản trước đó không có cơ chế này
 
 ## Quy ước làm việc

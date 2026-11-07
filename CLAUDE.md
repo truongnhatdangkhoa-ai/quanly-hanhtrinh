@@ -7,7 +7,7 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - React 18 + TypeScript + Vite
 - Capacitor 6 đóng gói ra Android (thư mục `android/` KHÔNG nằm trong repo, CI tự tạo bằng `npx cap add android`)
 - Lưu dữ liệu: localStorage (khóa `hanh-trinh-data-v1`), đủ cho Bản 1. Bản 3 sẽ cân nhắc chuyển SQLite/IndexedDB khi có ảnh
-- Giao diện tiếng Việt, tông xanh đậm (#12303b) + vàng nắng (#f2b33d), dùng font hệ thống (chạy offline)
+- Giao diện tiếng Việt, tông xanh đậm (#12303b) + vàng nắng (#f2b33d), dùng font hệ thống (chạy offline). Có chế độ tối tự theo máy; màu/bo góc/đổ bóng nằm ở biến CSS `:root` đầu `styles.css`
 - Tiền: luôn hiển thị dạng `100.000 VNĐ`, dùng `money()` và `groupDigits()` trong `src/utils.ts`; lưu dạng số nguyên
 
 ## Cấu trúc
@@ -19,14 +19,26 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - `src/storage.ts` hook `useData` đọc/ghi localStorage
 - `src/types.ts` kiểu dữ liệu + danh sách danh mục chi
 - `src/MoneyInput.tsx` ô nhập tiền: gõ 100000 tự hiện 100.000, đơn vị VNĐ nằm trong ô
+- `src/Icon.tsx` bộ icon SVG (thay emoji), `CatBadge` + màu từng danh mục chi (`CAT_COLOR`)
 - `src/Logo.tsx` logo (ghim địa điểm + đường đi chấm), dùng ở đầu trang danh sách
 - `tools/make-icons.py` tạo icon/splash (cần Pillow). Chạy lại khi đổi thiết kế logo; kết quả nằm ở `android-res/` và `assets/`
 - `android-res/` icon launcher các mật độ màn hình, CI chép đè vào `android/app/src/main/res/`
 - `assets/` icon-512.png và splash.png (màn hình chờ)
 - `keystore/debug.keystore` khóa ký cố định (để cài đè bản mới lên bản cũ). Chỉ là khóa debug, không phải khóa phát hành Google Play
 
+## Quy ước giao diện (UI/UX)
+- Màu, bo góc, đổ bóng, chiều cao tab: chỉ dùng biến CSS ở `:root` đầu `src/styles.css` (có sẵn bản tối trong `@media (prefers-color-scheme: dark)`). Không viết mã màu cứng trong component, trừ màu danh mục chi ở `CAT_COLOR` (`src/Icon.tsx`)
+- Icon: dùng `<Icon name="..." />` trong `src/Icon.tsx` (SVG nét đơn 24x24). Không dùng emoji làm icon. Thêm icon mới = thêm một mục vào `PATHS`
+- Thêm danh mục chi mới: thêm vào `CATEGORIES` (`types.ts`), thêm icon cùng `key` vào `PATHS` và màu vào `CAT_COLOR`
+- Vùng chạm tối thiểu 40px (nút icon) và 50px (nút chính, ô nhập). Nút hành động chính: nền vàng (`.fab`) hoặc xanh đậm (`.primary`)
+- Form luôn mở bằng `Modal` (bottom sheet); nút xóa là `.danger` có icon thùng rác, nút lưu là `.primary` bên phải
+- Màn hình trống dùng khối `.empty-state` (icon + tiêu đề + một câu hướng dẫn), không để trang trắng
+- Tiền hiển thị lớn: số và chữ `VNĐ` nhỏ cạnh nhau (xem `.budget-amount`); số liệu dùng `font-variant-numeric: tabular-nums`
+- Tôn trọng vùng an toàn của máy (`--safe-top`, `--safe-bottom`) và `prefers-reduced-motion`
+- Sau khi sửa giao diện: kiểm tra cả chế độ sáng và tối, màn hình hẹp 360px, và chữ tiếng Việt dài không bị tràn
+
 ## Build và phát hành APK (tự động)
-- File `.github/workflows/build-apk.yml` tự chạy mỗi khi push lên `main`/`master` (trừ khi chỉ sửa file `.md`)
+- File `.github/workflows/build-apk.yml` tự chạy mỗi khi push lên bất kỳ nhánh nào (trừ khi chỉ sửa file `.md`). Lưu ý: file workflow phải có trong chính nhánh được push
 - Kết quả: APK nằm ở mục **Releases** của repo, tên `HanhTrinh.apk`
 - Link tải bản mới nhất: `https://github.com/<tài khoản>/<repo>/releases/latest/download/HanhTrinh.apk`
 - `versionCode` = số lần chạy workflow (`github.run_number`), nên bản sau luôn lớn hơn bản trước
@@ -69,5 +81,7 @@ Chạy offline, dữ liệu lưu ngay trên máy. Không có chia tiền nhóm.
 - [ ] Nhiều loại tiền (nếu đi nước ngoài)
 
 ## Nhật ký các bản
+- 1.0.3: Thiết kế lại giao diện: màn hình chính có thẻ chuyến nổi bật + thẻ chuyến có trạng thái, tab dưới có icon, lịch trình dạng timeline, chi phí gom theo ngày, tổng kết có biểu đồ vành khuyên, form dạng bottom sheet, chế độ tối. Không đổi dữ liệu/chức năng.
+- 1.0.2: Sửa workflow để tự build ở mọi nhánh (trước đó chỉ main/master nên nhánh khác không tự chạy).
 - 1.0.1: Tiền đơn vị VNĐ, ô nhập tự thêm dấu chấm ngăn cách hàng nghìn (gõ 100000 hiện 100.000 VNĐ). Thêm icon, logo, màn hình chờ riêng (thay logo mặc định của Capacitor).
 - 1.0.0: Bản 1. Chuyến đi, lịch trình theo ngày, chi phí theo danh mục, ngân sách, tổng kết, CI tự build APK. Chưa chạy thử trên máy thật tại thời điểm viết (môi trường soạn không có mạng để build).

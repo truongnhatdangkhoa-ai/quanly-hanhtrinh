@@ -1,7 +1,8 @@
 import { useState } from "react";
+import Icon from "./Icon";
 import Modal from "./Modal";
 import type { Stop, Trip } from "./types";
-import { addDays, fmtDate, mapsUrl, tripDayCount, uid } from "./utils";
+import { addDays, fmtDate, mapsUrl, tripDayCount, uid, weekdayName } from "./utils";
 
 type Props = {
   trip: Trip;
@@ -31,43 +32,80 @@ export default function Itinerary({ trip, stops, onChange }: Props) {
         const list = stops
           .filter((s) => s.day === day)
           .sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99"));
+        const doneCount = list.filter((s) => s.done).length;
+        const date = addDays(trip.startDate, day - 1);
         return (
           <section key={day} className="day">
             <div className="day-head">
-              <div>
-                <h3>Ngày {day}</h3>
-                <span className="muted">{fmtDate(addDays(trip.startDate, day - 1))}</span>
+              <span className="day-badge" aria-hidden="true">
+                <small>Ngày</small>
+                {day}
+              </span>
+              <div className="grow">
+                <h3>{weekdayName(date)}</h3>
+                <span className="muted">
+                  {fmtDate(date)}
+                  {list.length > 0 && ` · ${doneCount}/${list.length} điểm đã đến`}
+                </span>
               </div>
               <button
-                className="small"
+                className="pill-btn"
                 onClick={() =>
                   setEditing({ id: uid(), tripId: trip.id, day, time: "", place: "", note: "", done: false })
                 }
               >
-                + Thêm điểm
+                <Icon name="plus" size={16} stroke={2.4} /> Thêm
               </button>
             </div>
-            {list.length === 0 && <p className="empty">Chưa có điểm dừng nào cho ngày này.</p>}
-            {list.map((s) => (
-              <div key={s.id} className={"stop" + (s.done ? " done" : "")}>
-                <input
-                  type="checkbox"
-                  checked={s.done}
-                  onChange={() => toggle(s.id)}
-                  aria-label={"Đã đến " + s.place}
-                />
-                <div className="stop-body" onClick={() => setEditing(s)}>
-                  <div className="stop-time">{s.time || "--:--"}</div>
-                  <div>
-                    <strong>{s.place}</strong>
-                    {s.note && <div className="muted">{s.note}</div>}
-                  </div>
-                </div>
-                <a className="map" href={mapsUrl(s.place + " " + trip.destination)} target="_blank" rel="noreferrer">
-                  Bản đồ
-                </a>
-              </div>
-            ))}
+
+            {list.length === 0 ? (
+              <button
+                className="day-empty"
+                onClick={() =>
+                  setEditing({ id: uid(), tripId: trip.id, day, time: "", place: "", note: "", done: false })
+                }
+              >
+                <Icon name="pin" size={18} /> Chưa có điểm dừng. Chạm để thêm điểm đầu tiên
+              </button>
+            ) : (
+              <ol className="timeline">
+                {list.map((s) => (
+                  <li key={s.id} className={"stop" + (s.done ? " done" : "")}>
+                    <div className="stop-time">{s.time || "--:--"}</div>
+                    <div className="rail" aria-hidden="true">
+                      <span className="dot" />
+                    </div>
+                    <div className="stop-card">
+                      <input
+                        type="checkbox"
+                        checked={s.done}
+                        onChange={() => toggle(s.id)}
+                        aria-label={"Đã đến " + s.place}
+                      />
+                      <div
+                        className="stop-body"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setEditing(s)}
+                        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setEditing(s)}
+                      >
+                        <strong>{s.place}</strong>
+                        {s.note && <span className="muted">{s.note}</span>}
+                      </div>
+                      <a
+                        className="icon-btn map"
+                        href={mapsUrl(s.place + " " + trip.destination)}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={"Chỉ đường tới " + s.place}
+                      >
+                        <Icon name="navigate" size={18} />
+                      </a>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
           </section>
         );
       })}
@@ -134,8 +172,8 @@ function StopForm({
       </label>
       <div className="actions">
         {!isNew && (
-          <button className="danger" onClick={onDelete}>
-            Xóa điểm dừng
+          <button className="danger" onClick={onDelete} aria-label="Xóa điểm dừng">
+            <Icon name="trash" size={19} /> Xóa
           </button>
         )}
         <button className="primary" disabled={!place.trim()} onClick={() => onSave({ ...stop, place: place.trim(), time, note: note.trim(), day })}>

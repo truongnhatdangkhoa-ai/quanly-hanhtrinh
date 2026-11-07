@@ -50,3 +50,27 @@ export const countdownText = (start: string, end: string) => {
 
 export const mapsUrl = (place: string) =>
   "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(place);
+
+export type TripStatus = "upcoming" | "ongoing" | "past";
+export const tripStatus = (start: string, end: string): TripStatus => {
+  const today = todayStr();
+  if (daysBetween(today, start) > 0) return "upcoming";
+  if (daysBetween(today, end) >= 0) return "ongoing";
+  return "past";
+};
+
+const WEEKDAYS = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"];
+export const weekdayName = (s: string) => WEEKDAYS[toDate(s).getDay()];
+
+// "2027-03-05" -> { day: "05", month: "thg 3" } cho khối ngày trên thẻ chuyến đi
+export const dayMonth = (s: string) => {
+  const [, m, d] = s.split("-");
+  return { day: d, month: "thg " + Number(m) };
+};
+
+// Rút gọn ngày dd/mm cho dòng thông tin ngắn
+export const fmtShort = (s: string) => {
+  if (!s) return "";
+  const [, m, d] = s.split("-");
+  return `${d}/${m}`;
+};

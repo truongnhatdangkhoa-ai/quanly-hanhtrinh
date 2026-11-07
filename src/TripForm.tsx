@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Icon from "./Icon";
 import Modal from "./Modal";
 import MoneyInput from "./MoneyInput";
 import type { Trip } from "./types";
@@ -50,8 +51,8 @@ export default function TripForm({
       {!valid && <p className="hint">Nhập tên chuyến đi, ngày về không được trước ngày đi.</p>}
       <div className="actions">
         {onDelete && (
-          <button className="danger" onClick={() => confirm("Xóa chuyến đi và toàn bộ dữ liệu của nó?") && onDelete()}>
-            Xóa chuyến đi
+          <button className="danger" aria-label="Xóa chuyến đi" onClick={() => confirm("Xóa chuyến đi và toàn bộ dữ liệu của nó?") && onDelete()}>
+            <Icon name="trash" size={19} /> Xóa
           </button>
         )}
         <button

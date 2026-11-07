@@ -206,16 +206,18 @@ export default function MapPicker({
       setPointRef.current?.({ lat: r.lat, lng: r.lng });
       return;
     }
+    const old = r.legacy ? " Bạn đang dùng APK cũ: hãy tải và cài lại APK mới nhất (mục Releases) để có đầy đủ tính năng." : "";
     if (r.reason === "denied") {
-      setMsg("Ứng dụng chưa được phép dùng vị trí. Hãy cho phép trong Cài đặt rồi quay lại bấm nút vị trí.");
+      setMsg("Ứng dụng chưa được phép dùng vị trí. Hãy cho phép trong Cài đặt rồi quay lại bấm nút vị trí." + old);
       setFix("app");
     } else if (r.reason === "off") {
       setMsg("GPS đang tắt. Hãy bật vị trí (GPS) trên máy rồi thử lại.");
       setFix("gps");
     } else if (r.reason === "unsupported") {
-      setMsg("Máy này không hỗ trợ định vị.");
+      setMsg("Máy này không hỗ trợ định vị." + old);
     } else {
-      setMsg("Chưa lấy được vị trí. Ra chỗ thoáng hoặc thử lại sau.");
+      setMsg("Chưa lấy được vị trí. Hãy bật GPS, ra chỗ thoáng rồi thử lại, hoặc chạm thẳng lên bản đồ để ghim." + old);
+      setFix("gps");
     }
   };
 
@@ -283,7 +285,9 @@ export default function MapPicker({
       <div className="picker-card">
         {msg && <p className="picker-msg">{msg}</p>}
         {fix && canOpenSettings() && (
-          <button type="button" className="picker-fix" onClick={() => openLocationSettings(fix)}>
+          <button type="button" className="picker-fix" onClick={async () => {
+              if (!(await openLocationSettings(fix))) setMsg("Chưa mở được Cài đặt tự động (APK cũ). Hãy vào Cài đặt của máy > Ứng dụng > Hành Trình > Quyền để bật vị trí, hoặc cài lại APK mới nhất.");
+            }}>
             <Icon name="locate" size={18} /> {fix === "app" ? "Mở cài đặt để cho phép vị trí" : "Mở cài đặt vị trí (GPS)"}
           </button>
         )}

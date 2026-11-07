@@ -6,7 +6,9 @@ import { addDays } from "./utils";
 // Thông báo nhắc (chỉ chạy trên APK). Mỗi lần dữ liệu đổi, huỷ hết thông báo cũ rồi đặt lại toàn bộ
 // các nhắc còn ở tương lai, nên sửa/xóa điểm dừng hay chuyến đi đều tự khớp.
 
-export const canNotify = () => Capacitor.isNativePlatform();
+export const canNotify = () => Capacitor.isNativePlatform() && Capacitor.isPluginAvailable("LocalNotifications");
+// Đang chạy giao diện mới trên APK cũ (chưa có plugin thông báo): cần cài lại APK
+export const notifyNeedsApk = () => Capacitor.isNativePlatform() && !Capacitor.isPluginAvailable("LocalNotifications");
 const MAX_PENDING = 60; // Android giới hạn số báo thức; chỉ đặt các nhắc gần nhất
 
 export type NotifyPerm = "granted" | "denied" | "unsupported";
